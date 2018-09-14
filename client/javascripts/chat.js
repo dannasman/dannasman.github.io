@@ -1,26 +1,14 @@
 var name;
+var messageArrayLength = 0;
 
 main = function () {
     'use strict';
-    console.log("haloo")
-    $("#nicknameButton").click(function () {
-        name = $("#nickname").val()
-        console.log(name);
-        if (name !== "") {
-            console.log(name);
-            document.location = "http://localhost:3000/index2.html";
-            console.log(document.location);
-        }
-    });
-    if(name !== "") {
-        getMessageBox();
-    }
+    checkUser();
 }
 
 getMessages = function () {
     $("#messages").empty();
     $.getJSON("messages.json", function (foundMessages) {
-        console.log(foundMessages);
         var allMessages = foundMessages.map(function (foundMessage) {
             return foundMessage.nickName + ": " + foundMessage.message;
         });
@@ -36,14 +24,42 @@ getMessageBox = function () {
     $("#inputMessage").append("<button href='index2.html' type='button' id='sendButton'>send</button>");
     $("#sendButton").click(function () {
         newMessage = $("#send").val();
-        console.log(newMessage);
         if (newMessage !== "") {
             messageObject = { "nickName": name, "message": newMessage };
-            $.post("messages", messageObject)
-            getMessages();
+            $.post("messages", messageObject);
         }
     })
 
 }
+
+checkUser = function ()   {
+    $("#nicknameButton").click(function () {
+        name = $("#nickname").val()
+        if (name !== "") {
+            document.location = "http://localhost:3000/index2.html";
+        }
+    });
+    if(name !== "") {
+        getMessageBox();
+        setInterval(function()   {
+            checkNewMessages();
+        }, 1000);
+    }
+}
+
+checkNewMessages = function ()  {
+    $.getJSON("messages.json", function (foundMessages) {
+        var result = 0;
+        for(i in foundMessages) {
+            result++;
+        }
+        if(result > messageArrayLength) {
+            messageArrayLength = result;
+            getMessages();
+        }
+
+    });
+        
+};
 
 $(document).ready(main)
