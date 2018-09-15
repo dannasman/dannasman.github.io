@@ -1,0 +1,25 @@
+#singleMessage  {
+    border: 2px solid #dedede;
+    background-color: #f1f1f1;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px 0;
+    width: 50%;
+    
+}
+#send, #nickname {
+    border: 2px solid #dedede;
+    padding: 10px;
+    margin: 10px 0;
+    width: 45%;
+    height: 10px;
+    float: left;
+}
+#sendButton, #nicknameButton {
+    background-color: rgb(119, 172, 253);
+    border: 2px solid #dedede;
+    float: left;
+    width: 5%;
+    margin: -8.5px 0;
+    padding: 7.5px;
+}

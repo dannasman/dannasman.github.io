@@ -12,9 +12,9 @@ getMessages = function () {
         var allMessages = foundMessages.map(function (foundMessage) {
             return foundMessage.nickName + ": " + foundMessage.message;
         });
-        allMessages.forEach(function (nickName) {
-            var feed = nickName;
-            $("#messages").append("<div>" + feed);
+        allMessages.forEach(function (content) {
+            var feed = content;
+            $("#messages").append("<div id='singleMessage'>" + feed);
         });
     });
 }
