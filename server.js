@@ -3,6 +3,7 @@ var express = require("express"),
     mongoose = require("mongoose"),
     bodyParser = require("body-parser"),
     nconf = require("nconf"),
+    MessageModel = require("./messages.js"),
     app = express();
 
 app.use(express.static(__dirname + "/client"));
@@ -20,13 +21,6 @@ const database = nconf.get("mongoDatabase")
 let uri = `mongodb://${user}:${pass}@${host}:${port}/${database}`;
 
 mongoose.connect(uri, { useNewUrlParser: true });
-
-var messageSchema = mongoose.Schema({
-    nickName: String,
-    message: String
-})
-
-var MessageModel = mongoose.model("MessageModel", messageSchema )
 
 http.createServer(app).listen(3000);
 

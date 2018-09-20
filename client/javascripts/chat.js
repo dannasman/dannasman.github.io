@@ -10,11 +10,18 @@ getMessages = function () {
     $("#messages").empty();
     $.getJSON("messages.json", function (foundMessages) {
         var allMessages = foundMessages.map(function (foundMessage) {
-            return foundMessage.nickName + ": " + foundMessage.message;
+            return [foundMessage.nickName, foundMessage.message];
         });
-        allMessages.forEach(function (content) {
-            var feed = content;
-            $("#messages").append("<div id='singleMessage'>" + feed);
+        recentMessages = allMessages.slice(allMessages.length - 10, allMessages.length);
+        recentMessages.forEach(function (content) {
+            var feed = content[0] + ": " + content[1];
+            if(content[0] === name) {
+                $("#messages").append("<div id='ownMessage'>" + feed);
+            }
+            else    {
+                $("#messages").append("<div id='othersMessage'>" + feed);
+            }
+            
         });
     });
 }
