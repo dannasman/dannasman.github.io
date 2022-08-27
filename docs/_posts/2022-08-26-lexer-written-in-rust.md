@@ -114,7 +114,7 @@ Next up are the logical operators. If a character matches with `"&"`, we iterate
 }
 {% endhighlight %}
 
-The relational operators are quite similar to the logical operators when it comes to our lexer. First we match the first character and if the second character also matches the token's second character, token is saved with value corresponding to it. Otherwise the first character is saved as `Id` token and we move on keeping track of the second character. In `lexer.rs`:
+The relational operators are quite similar to the logical operators when it comes to our lexer. First we match the first character and if the second character also matches the token's second character, token is saved with value corresponding to it. Otherwise the first character is saved as `Id`, `Lt` or `Gt` token and we move on keeping track of the second character. In `lexer.rs`:
 {% highlight rust %}
         //...
         match c {
