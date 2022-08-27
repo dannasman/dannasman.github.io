@@ -23,13 +23,13 @@ email: dan.nasman@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   In this blog you can find posts about projects I have been working on.
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://dannasman.github.io/" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  dannasman
-
 # Build settings
 theme: minima
 plugins:
   - jekyll-feed
+  - jekyll-sitemap
 
 # Exclude from processing.
 # The following items will not be processed, by default.

@@ -6,7 +6,7 @@ categories: jekyll update
 ---
 In this post we will be implementing a lexer in Rust. Lexer is a tool used in Compiler design to read characters from the input and group then into tokens. These tokens are then passed on forward to a parser, which will be the topic of the second part of this series.
 
-Our lexer will be grouping the characters into 15 different tokens. Let us enumerate these tokens in `lexer.rs`:
+Our lexer will be able to group the characters into 15 different tokens. Let us enumerate these tokens in `lexer.rs`:
 
 {% highlight rust %}
 #[derive(Debug, Clone)]
