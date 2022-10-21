@@ -5,7 +5,7 @@ date: 2022-10-21
 categories: hacktoberfest2022 hacktoberfest Rust RustPython zellij
 ---
 
-This year was my first time participating in Hacktoberfest. With little over a week left I have managed complete the challenge with one merged pull request to [Zellij](https://github.com/zellij-org/zellij) and three to [RustPython](https://github.com/RustPython/RustPython). For a couple of months now I have been getting more and more interested in the Rust programming language. When I read about Hacktoberfest 2022 I immediately got exited about measuring the knowledge acquired so far by contributing to open source Rust projects.
+This year was my first time participating in Hacktoberfest. With little over a week left I have managed to complete the challenge with one merged pull request to [Zellij](https://github.com/zellij-org/zellij) and three to [RustPython](https://github.com/RustPython/RustPython). For a couple of months now I have been getting more and more interested in the Rust programming language. When I read about Hacktoberfest 2022 I immediately got exited about measuring the knowledge acquired so far by contributing to open source Rust projects.
 
 # Zellij
 One of the four PRs submitted was to Zellij. 
