@@ -5,7 +5,7 @@ date: 2022-10-21
 categories: hacktoberfest2022 hacktoberfest Rust RustPython zellij
 ---
 
-This year was my first time participating in Hacktoberfest. With little over a week left it looks like I have managed managed complete the challenge with one merged pull request to [Zellij](https://github.com/zellij-org/zellij) and three to [RustPython](https://github.com/RustPython/RustPython). For a couple of months now I have been getting more and more interested in the Rust programming language. When I read about Hacktoberfest 2022 I immediately got exited about measuring the knowledge acquired so far by contributing to open source Rust projects.
+This year was my first time participating in Hacktoberfest. With little over a week left I have managed complete the challenge with one merged pull request to [Zellij](https://github.com/zellij-org/zellij) and three to [RustPython](https://github.com/RustPython/RustPython). For a couple of months now I have been getting more and more interested in the Rust programming language. When I read about Hacktoberfest 2022 I immediately got exited about measuring the knowledge acquired so far by contributing to open source Rust projects.
 
 # Zellij
 One of the four PRs submitted was to Zellij. 
@@ -76,5 +76,5 @@ The maintainers of the repository were welcoming and I learn a lot from their co
 
 # Ending words
 
-Overall this challenge was fun and educational. It was insightful to see how people around the globe have come together to work on projects that bring value. Below is a holopin board displaying the pins I've managed to gather so far during aHacktoberfest 2022!
+Overall this challenge was fun and educational. It was insightful to see how people around the globe have come together to work on projects that bring value. Below is a holopin board displaying the pins I've managed to gather so far during Hacktoberfest 2022!
 [![@dannasman's Holopin board](https://holopin.me/dannasman)](https://holopin.io/@dannasman)
