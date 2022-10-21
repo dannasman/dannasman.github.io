@@ -2,7 +2,7 @@
 layout: post
 title:  "Rusty compiler: Writing a lexer in Rust"
 date:   2022-08-26 20:40:46 +0300
-categories: jekyll update
+categories: lexer rust interpreter compiler
 ---
 In this post we will be implementing a lexer in Rust. Lexer is a tool used in Compiler design to read characters from the input and group then into tokens. These tokens are then passed on forward to a parser, which will be the topic of the second part of this series.
 

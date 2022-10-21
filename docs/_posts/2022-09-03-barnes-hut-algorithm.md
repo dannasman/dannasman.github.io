@@ -2,7 +2,7 @@
 layout: post
 title:  "Using the Barnes-Hut algorithm to model Coulomb interactions between particles"
 date:   2022-09-07 21:03:00 +0300
-categories: jekyll update
+categories: physics algorithm rust nbody barneshut
 ---
 {%- include mathjax.html -%}
 
