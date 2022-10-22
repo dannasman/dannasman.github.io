@@ -11,9 +11,9 @@ This year was my first time participating in Hacktoberfest. With little over a w
 One of the four PRs submitted was to Zellij. 
 > Zellij is a workspace aimed at developers, ops-oriented people and anyone who loves the terminal. At its core, it is a terminal multiplexer (similar to tmux and screen), but this is merely its infrastructure layer. 
 > 
-> Zellij includes a layout system, and a plugin system allowing one to create plugins in any language that compiles to WebAssembly..
+> Zellij includes a layout system, and a plugin system allowing one to create plugins in any language that compiles to WebAssembly.
 >
-> -- <cite>[Zellij User Guide](https://zellij.dev/documentation/overview.html)</cite>
+> -- <cite>[Zellij Github repository](https://github.com/zellij-org/zellij)</cite>
 
 The PR added a new feature to the `dump-screen` command. A flag `-f` or `--full` was added to indicate whether the full scrollback was to be dumped or just the viewport when using `zellij action dump-screen`.
 The maintainers of the repository were very welcoming and provided guidance as I worked on the solution.
