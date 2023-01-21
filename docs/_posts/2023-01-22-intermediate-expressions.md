@@ -32,7 +32,8 @@ From the grammar above one can detect the expression nodes by looking for the op
 Let us start by implementing some IR generating functions shared by all the expression nodes. In `inter.rs`:
 ```rust
 use super::lexer::Token;
-use std::sync::{Arc, Mutex};
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub trait ExprNode {
     fn emit_label(&self, i: u32) {
@@ -61,7 +62,7 @@ pub trait ExprNode {
     fn to_string(&self) -> String;
 }
 ```
-The mutex import is for later use. The `emit_label` function emits a label with with given label numer `i`, `emit` emits a string `s`, `emit_jumps` generates IR code for logical expressions. It is given a string `s`, which often contains a logical expression, and label numbers `t` and `f` for a situation where condition is true and where it is false respectively. `jumping` calls `emit_jumps` for expression node itself. `to_string` gives a string representation of the expression node.
+The `Rc` and `RefCell` imports are for later use. The `emit_label` function emits a label with with given label numer `i`, `emit` emits a string `s`, `emit_jumps` generates IR code for logical expressions. It is given a string `s`, which often contains a logical expression, and label numbers `t` and `f` for a situation where condition is true and where it is false respectively. `jumping` calls `emit_jumps` for expression node itself. `to_string` gives a string representation of the expression node.
 
 Now we will define a union of all the expression node types. This makes it easier to link the child nodes to the parent node. Instead of the `union` type I found it easier to work with `enum`. Let us also implement some helper functions for the union. In `inter.rs`:
 ```rust
@@ -149,7 +150,7 @@ is. This is where the `Temp` node mentioned earlier comes in. It's purpose is to
 #[derive(Debug, Clone)]
 pub struct Arith {
     op: Token,
-    temp_count: Arc<Mutex<u32>>,
+    temp_count: Rc<RefCell<u32>>,
     expr1: ExprUnion,
     expr2: ExprUnion,
 }
@@ -179,10 +180,10 @@ impl Arith {
             _ => (),
         }
 
-        Arith::new(self.op.clone(), Arc::clone(&self.temp_count), e1, e2)
+        Arith::new(self.op.clone(), Rc::clone(&self.temp_count), e1, e2)
     }
 
-    pub fn new(op: Token, temp_count: Arc<Mutex<u32>>, expr1: ExprUnion, expr2: ExprUnion) -> Self {
+    pub fn new(op: Token, temp_count: Rc<RefCell<u32>>, expr1: ExprUnion, expr2: ExprUnion) -> Self {
         Arith {
             op,
             temp_count,
@@ -192,7 +193,7 @@ impl Arith {
     }
 
     fn reduce(&self) -> Temp {
-        let temp = Temp::new(Arc::clone(&self.temp_count));
+        let temp = Temp::new(Rc::clone(&self.temp_count));
         self.emit(format!("{} = {}", temp.to_string(), self.gen().to_string()));
         temp
     }
@@ -220,8 +221,8 @@ pub struct Temp {
 }
 
 impl Temp {
-    pub fn new(temp_count: Arc<Mutex<u32>>) -> Self {
-        let mut c = temp_count.lock().unwrap();
+    pub fn new(temp_count: Rc<RefCell<u32>>) -> Self {
+        let mut c = temp_count.borrow_mut();
         *c += 1;
         let number = *c;
         drop(c);
@@ -235,13 +236,13 @@ impl ExprNode for Temp {
     }
 }
 ```
-It is pretty straicht forward. The constructor gets the `temp_count`, locks it so no other instance can use it, increments it and assigns the incremented value to its field `number`. The `Unary` node is quite similar to `Arith` except that there is only one child node. In `inter.rs`:
+It is pretty straicht forward. The constructor gets the `temp_count`, borrows the value, increments it and assigns the incremented value to its field `number`. The `Unary` node is quite similar to `Arith` except that there is only one child node. In `inter.rs`:
 ```rust
 //...
 #[derive(Debug, Clone)]
 pub struct Unary {
     op: Token,
-    temp_count: Arc<Mutex<u32>>,
+    temp_count: Rc<RefCell<u32>>,
     expr: ExprUnion,
 }
 
@@ -257,9 +258,9 @@ impl Unary {
             }
             _ => (),
         }
-        Unary::new(self.op.clone(), Arc::clone(&self.temp_count), e)
+        Unary::new(self.op.clone(), Rc::clone(&self.temp_count), e)
     }
-    pub fn new(op: Token, temp_count: Arc<Mutex<u32>>, expr: ExprUnion) -> Self {
+    pub fn new(op: Token, temp_count: Rc<RefCell<u32>>, expr: ExprUnion) -> Self {
         Unary {
             op,
             temp_count,
@@ -268,7 +269,7 @@ impl Unary {
     }
 
     fn reduce(&self) -> Temp {
-        let temp = Temp::new(Arc::clone(&self.temp_count));
+        let temp = Temp::new(Rc::clone(&self.temp_count));
         self.emit(format!("{} = {}", temp.to_string(), self.gen().to_string()));
         temp
     }
@@ -312,7 +313,7 @@ impl ExprNode for Constant {
                     self.emit(format!("goto L{}", f));
                 }
             }
-            _ => (), //TODO: palaa tähån kun funktioiden palautus on Result-tyyppiä
+            _ => ()
         }
     }
 
@@ -323,26 +324,26 @@ impl ExprNode for Constant {
 ```
 To generate three address code IR the `Or` and `And` nodes sometimes need to generate a lot of jumping code. In `inter.rs`:
 ```rust
+//...
 #[derive(Debug, Clone)]
 pub struct Or {
-    label: Arc<Mutex<u32>>,
-    temp_count: Arc<Mutex<u32>>,
+    label: Rc<RefCell<u32>>,
+    temp_count: Rc<RefCell<u32>>,
     op: Token,
     expr1: ExprUnion,
     expr2: ExprUnion,
 }
 
 impl Or {
-    //used by logical expressions
     fn gen(&self) -> Temp {
-        let mut l = self.label.lock().unwrap();
+        let mut l = self.label.borrow_mut();
         *l += 1;
         let f = *l;
         *l += 1;
         let a = *l;
         drop(l);
 
-        let temp = Temp::new(Arc::clone(&self.temp_count));
+        let temp = Temp::new(Rc::clone(&self.temp_count));
         self.jumping(0, f);
         self.emit(format!("{} = true", temp.to_string()));
         self.emit(format!("goto L{}", a));
@@ -352,8 +353,8 @@ impl Or {
         temp
     }
     pub fn new(
-        label: Arc<Mutex<u32>>,
-        temp_count: Arc<Mutex<u32>>,
+        label: Rc<RefCell<u32>>,
+        temp_count: Rc<RefCell<u32>>,
         op: Token,
         expr1: ExprUnion,
         expr2: ExprUnion,
@@ -372,7 +373,7 @@ impl ExprNode for Or {
     fn jumping(&self, t: u32, f: u32) {
         let mut new_label = t;
         if t == 0 {
-            let mut l = self.label.lock().unwrap();
+            let mut l = self.label.borrow_mut();
             *l += 1;
             new_label = *l;
             drop(l);
@@ -393,24 +394,23 @@ impl ExprNode for Or {
 
 #[derive(Debug, Clone)]
 pub struct And {
-    label: Arc<Mutex<u32>>,
-    temp_count: Arc<Mutex<u32>>,
+    label: Rc<RefCell<u32>>,
+    temp_count: Rc<RefCell<u32>>,
     op: Token,
     expr1: ExprUnion,
     expr2: ExprUnion,
 }
 
 impl And {
-    //used by logical expressions
     fn gen(&self) -> Temp {
-        let mut l = self.label.lock().unwrap();
+        let mut l = self.label.borrow_mut();
         *l += 1;
         let f = *l;
         *l += 1;
         let a = *l;
         drop(l);
 
-        let temp = Temp::new(Arc::clone(&self.temp_count));
+        let temp = Temp::new(Rc::clone(&self.temp_count));
         self.jumping(0, f);
         self.emit(format!("{} = true", temp.to_string()));
         self.emit(format!("goto L{}", a));
@@ -420,8 +420,8 @@ impl And {
         temp
     }
     pub fn new(
-        label: Arc<Mutex<u32>>,
-        temp_count: Arc<Mutex<u32>>,
+        label: Rc<RefCell<u32>>,
+        temp_count: Rc<RefCell<u32>>,
         op: Token,
         expr1: ExprUnion,
         expr2: ExprUnion,
@@ -440,7 +440,7 @@ impl ExprNode for And {
     fn jumping(&self, t: u32, f: u32) {
         let mut new_label = f;
         if f == 0 {
-            let mut l = self.label.lock().unwrap();
+            let mut l = self.label.borrow_mut();
             *l += 1;
             new_label = *l;
             drop(l);
@@ -467,21 +467,21 @@ The `Not` node is simple. It shares the same `gen` function with `Or` and `And`.
 #[derive(Debug, Clone)]
 pub struct Not {
     op: Token,
-    label: Arc<Mutex<u32>>,
-    temp_count: Arc<Mutex<u32>>,
+    label: Rc<RefCell<u32>>,
+    temp_count: Rc<RefCell<u32>>,
     expr: ExprUnion,
 }
 
 impl Not {
     fn gen(&self) -> Temp {
-        let mut l = self.label.lock().unwrap();
+        let mut l = self.label.borrow_mut();
         *l += 1;
         let f = *l;
         *l += 1;
         let a = *l;
         drop(l);
 
-        let temp = Temp::new(Arc::clone(&self.temp_count));
+        let temp = Temp::new(Rc::clone(&self.temp_count));
         self.jumping(0, f);
         self.emit(format!("{} = true", temp.to_string()));
         self.emit(format!("goto L{}", a));
@@ -492,8 +492,8 @@ impl Not {
     }
     pub fn new(
         op: Token,
-        label: Arc<Mutex<u32>>,
-        temp_count: Arc<Mutex<u32>>,
+        label: Rc<RefCell<u32>>,
+        temp_count: Rc<RefCell<u32>>,
         expr: ExprUnion,
     ) -> Self {
         Not {
@@ -516,7 +516,95 @@ impl ExprNode for Not {
     }
 }
 ```
-Last but not least we have the `Rel` node. It shares the same `gen` functions with the rest of the logical expression nodes. For `jumping` it needs to reduce the its child nodes if they are `Arith` or `Unary`. Then it just emits jumps to `t` or `f` based on how it evaluates.
+Last but not least we have the `Rel` node. It shares the same `gen` functions with the rest of the logical expression nodes. For `jumping` it needs to reduce the its child nodes if they are `Arith` or `Unary`. Then it just emits jumps to `t` or `f` based on how it evaluates. In `inter.rs`:
+```rust
+//...
+#[derive(Debug, Clone)]
+pub struct Rel {
+    op: Token,
+    label: Rc<RefCell<u32>>,
+    temp_count: Rc<RefCell<u32>>,
+    expr1: ExprUnion,
+    expr2: ExprUnion,
+}
+
+impl Rel {
+    fn gen(&self) -> Temp {
+        let mut l = self.label.borrow_mut();
+        *l += 1;
+        let f = *l;
+        *l += 1;
+        let a = *l;
+        drop(l);
+
+        let temp = Temp::new(Rc::clone(&self.temp_count));
+        self.jumping(0, f);
+        self.emit(format!("{} = true", temp.to_string()));
+        self.emit(format!("goto L{}", a));
+        self.emit_label(f);
+        self.emit(format!("{} = false", temp.to_string()));
+        self.emit_label(a);
+        temp
+    }
+    pub fn new(
+        op: Token,
+        label: Rc<RefCell<u32>>,
+        temp_count: Rc<RefCell<u32>>,
+        expr1: ExprUnion,
+        expr2: ExprUnion,
+    ) -> Self {
+        Rel {
+            op,
+            label,
+            temp_count,
+            expr1,
+            expr2,
+        }
+    }
+}
+
+impl ExprNode for Rel {
+    fn jumping(&self, t: u32, f: u32) {
+        let mut e1 = self.expr1.clone();
+        let mut e2 = self.expr2.clone();
+
+        match e1 {
+            ExprUnion::Arith(arith) => {
+                e1 = ExprUnion::Temp(Box::new(arith.reduce()));
+            }
+            ExprUnion::Unary(unary) => {
+                e1 = ExprUnion::Temp(Box::new(unary.reduce()));
+            }
+            _ => (),
+        }
+
+        match e2 {
+            ExprUnion::Arith(arith) => {
+                e2 = ExprUnion::Temp(Box::new(arith.reduce()));
+            }
+            ExprUnion::Unary(unary) => {
+                e2 = ExprUnion::Temp(Box::new(unary.reduce()));
+            }
+            _ => (),
+        }
+
+        let test = format!(
+            "{} {} {}",
+            e1.gen_expr_string(),
+            self.op.clone().value_to_string(),
+            e2.gen_expr_string()
+        );
+        self.emit_jumps(test, t, f);
+    }
+
+    fn to_string(&self) -> String {
+        let e1 = self.expr1.gen_expr_string();
+        let e2 = self.expr2.gen_expr_string();
+        format!("{} {} {}", e1, self.op.clone().value_to_string(), e2)
+    }
+}
+```
+
 
 Phew! That conclued all the intermediate expression code in our rusty compiler so far. I hope this post was not too long and difficult to read. If you find any flaws in the code or have suggestions for improvements please contact me!
 
