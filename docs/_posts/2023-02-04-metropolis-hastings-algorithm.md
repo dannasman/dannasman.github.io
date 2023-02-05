@@ -13,7 +13,7 @@ In this post we will be implementing and using the Metropolis-Hastings algorithm
 
 The Ising model was originaly invented by physicist Wilhelm Lenz in 1920 and given as a problem to his student Ernst Ising. The model describes the configuration of the magnetic dipole moments of atomic spins in a set of lattice sites. Consider a two dimensional grid consisting of lattice sites adjacent to each other with each lattice site $k$ having a spin $\sigma_k=\pm1$. Between a lattice site $i$ and their neighboring site(s) $j$ there exists a interaction $J_{ij}$. In our simulation the external magnetic field is considered to be zero and the neighbor interaction $J$ is the same for all sites. The energy of a configuration $\sigma_{x,y}$ in the 2D grid is given by the Hamiltonian function
 $$
-\mathcal{H}\_{xy}=-J\sigma_{x, y}(\sigma_{x-1, y}+\sigma_{x+1, y}+\sigma_{x, y-1}+\sigma_{x, y+1}).
+\mathcal{H}_{xy}=-J\sigma_{x, y}(\sigma_{x-1, y}+\sigma_{x+1, y}+\sigma_{x, y-1}+\sigma_{x, y+1}).
 $$
 When the system has reached equilibrium at temperature $T$, the probability of the configuration $\sigma_{x, y}$ is given by the Maxwell-Boltzmann factor
 $$
