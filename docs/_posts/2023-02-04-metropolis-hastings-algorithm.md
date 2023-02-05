@@ -4,7 +4,7 @@ title:  "Using the Metropolis-Hastings algorithm to simulate the 2D Ising model"
 date:   2023-02-05
 categories: physics algorithm rust montecarlo metropolis-hastings
 ---
-{%- include mathjax.html -%}
+{% include mathjax.html %}
 
 ## Introduction
 In this post we will be implementing and using the Metropolis-Hastings algorithm to calculate the spin configuration of the 2D Ising model based on a [paper](https://arxiv.org/abs/1404.0209) written by Jean-Charles Walter and Gerard Barkema in 2014. The algorithm belongs to a group of Markov chain Monte Carlo (MCMC) methods that are used in numerical analysis and to calculate multiple integrals.
@@ -17,7 +17,7 @@ $$
 $$
 When the system has reached equilibrium at temperature $T$, the probability of the configuration $\sigma_{x, y}$ is given by the Maxwell-Boltzmann factor
 $$
-P(\sigma_{x, y})=\frac{e^{-\frac{\mathcal{H}\_{xy}}{k_BT}}}{Z},
+P(\sigma_{x, y})=\frac{e^{-\frac{\mathcal{H}_{xy}}{k_BT}}}{Z},
 $$
 where $k_B$ is the Boltzmann factor and $Z$ is the partition function.
 

@@ -4,7 +4,7 @@ title:  "Using the Barnes-Hut algorithm to model Coulomb interactions between pa
 date:   2022-09-07 21:03:00 +0300
 categories: physics algorithm rust nbody barneshut
 ---
-{%- include mathjax.html -%}
+{% include mathjax.html %}
 
 # Introduction
 In this post we will be implementing an algorithm to model Coulomb interactions between particles using the Barnes-Hut algorithm. A problem where interactions in a dynamical system of particles simulated is called a *N-body problem*. As the the number of particles in the system rises the problem gets increasingly harder. Computation of the problem using brute force has a time complexity of $ O(N^2) $. In their 1986 [paper](https://www.nature.com/articles/324446a0) Josh Barnes and Piet Hut introduced a new approach to solving the problem in $O(N\log{N})$ time.
