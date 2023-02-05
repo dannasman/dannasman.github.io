@@ -12,13 +12,17 @@ In this post we will be implementing and using the Metropolis-Hastings algorithm
 ## 2D Ising Model
 
 The Ising model was originaly invented by physicist Wilhelm Lenz in 1920 and given as a problem to his student Ernst Ising. The model describes the configuration of the magnetic dipole moments of atomic spins in a set of lattice sites. Consider a two dimensional grid consisting of lattice sites adjacent to each other with each lattice site $k$ having a spin $\sigma_k=\pm1$. Between a lattice site $i$ and their neighboring site(s) $j$ there exists a interaction $J_{ij}$. In our simulation the external magnetic field is considered to be zero and the neighbor interaction $J$ is the same for all sites. The energy of a configuration $\sigma_{x,y}$ in the 2D grid is given by the Hamiltonian function
+
 $$
 \mathcal{H}_{xy}=-J\sigma_{x, y}(\sigma_{x-1, y}+\sigma_{x+1, y}+\sigma_{x, y-1}+\sigma_{x, y+1}).
 $$
+
 When the system has reached equilibrium at temperature $T$, the probability of the configuration $\sigma_{x, y}$ is given by the Maxwell-Boltzmann factor
+
 $$
 P(\sigma_{x, y})=\frac{e^{-\frac{\mathcal{H}_{xy}}{k_BT}}}{Z},
 $$
+
 where $k_B$ is the Boltzmann factor and $Z$ is the partition function.
 
 ## Metropolis Hastings method
@@ -26,33 +30,43 @@ where $k_B$ is the Boltzmann factor and $Z$ is the partition function.
 # Ergodicity and the condition of detailed balance
 
 Ergodicity and the condition of detailed balance are important terms when implementing Monte Carlo simulations. During a Monte Carlo simulation a small random change in configuration $C_i$ is proposed to the system resulting in the trial configuration $C^t_{i+1}$. The trial configuration is then either accepted resulting in $C_{i+1}=C^t_{i+1}$ or rejected resulting in $C_{i+1}=C_i$. This set of configurations $i=1, ..., M$ is called a Markov chain in the phase space of the system. Markov process can be described by equation
+
 $$
 \dfrac{d}{dt}P_A(t)=\sum_{A\neq B}\left[P_B(t)W(B\rightarrow A)-P_A(t)W(A\rightarrow B)\right],
 $$
+
 where $P_A(t)$ is the propability of configuration $A$ at time $t$, $W(A\rightarrow B)\geq0$ is the transition rate for the state $A$ to State $B$. For the transition rate $\sum_B W(A\rightarrow B)=1$ for all $A, B$.
 
 Ergodicity is a constraint which states that starting from any configuration $C_0$ with nonzero probability, any other configuration with nonzero probability can be reached through finite number of proposed changes to the configuration (Monte Carlo moves).
 
 The second constraint is the condition of detailed balance
+
 $$
 P_AW(A\rightarrow B)=P_BW(B\rightarrow A).
 $$
+
 Since our Ising model is at equilibrium and thus $\dfrac{d}{dt}P(\sigma_{x, y})=0$, this constraint is satisfied. From the equation for the condition of detailed balance we get a ratio of probabilities
+
 $$
 \frac{W(\sigma_{x, y}\rightarrow -\sigma_{x, y})}{W(-\sigma_{x, y}\rightarrow \sigma_{x, y})}=\frac{P(-\sigma_{x, y})}{P(\sigma_{x, y})}=e^{-\frac{2J\sigma_{x, y}(\sigma_{x-1, y}+\sigma_{x+1, y}+\sigma_{x, y-1}+\sigma_{x, y+1})}{k_BT}}=e^{-\frac{\Delta E}{k_BT}}.
 $$
+
 This ratio of probabilities gives us information on the transition probability of the configuration.
 
 # Transition and acceptance probabilities
 
 The rate of change is formed using transition and acceptance probabilities
+
 $$
 W(A\rightarrow B)=T(A\rightarrow B)A(A\rightarrow B).
 $$
+
 In our Ising model containing $N$ spins the transition probability for a single configuration is $\frac{1}{N}$. For the acceptance probability we use the ratio of probabilities introduced earlier. Probabilities can not exceed 1, so the boltzmann factor ($\Delta E<0\Rightarrow$) giving a value bigger than 1 is capped in the simulation. In Metropolis-Hastings algorithm, the acceptance probability is defined as
+
 $$
 A(\sigma_{x, y}\rightarrow-\sigma_{x, y})=\min\left[1, \frac{P(-\sigma_{x, y})}{P(\sigma_{x, y})}\right]=\min\left[1, e^{-\frac{\Delta E}{k_BT}}\right]
 $$
+
 In terms of physics this makes sense given the principle of minimum energy.
 
 # Structure of the algorithm
