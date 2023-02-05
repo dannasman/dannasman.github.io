@@ -233,9 +233,11 @@ impl Cell   {
 }
 ```
 Now that we have a function for constructing the octree as well as a function for calculating the charge distribution we can move on to calculating the Coulomb interaction
+
 $$
 \mathbf{F}_1=Kq_1q_2\frac{\mathbf{r}_1-\mathbf{r}_2}{|\mathbf{r}_1-\mathbf{r}_2|^3}
 $$
+
 between a inserted particle and the particles in the octree. The force calculation is done by starting from the root of the octree and recursively moving down the tree. If the cell has only one particle calculate the Coulomb interaction between the cell's particle and the inserted particle. Given an accuracy parameter $\theta$, current cell's edge length $l$ and the distance $D$ between the inserted particle and the current cell's center of charge, if $\frac{l}{D}<\theta$ the Coulomb interaction is calculated between the cell and the inserted particle. Otherwise the inserted particle is passed onto the cell's children. In `octree.rs`:
 ```rust
 //...
