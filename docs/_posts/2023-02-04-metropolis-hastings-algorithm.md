@@ -25,7 +25,7 @@ $$
 
 where $k_B$ is the Boltzmann factor and $Z$ is the partition function.
 
-## Metropolis Hastings method
+## Metropolis-Hastings method
 
 # Ergodicity and the condition of detailed balance
 
