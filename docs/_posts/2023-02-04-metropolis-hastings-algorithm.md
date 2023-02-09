@@ -61,7 +61,7 @@ $$
 W(A\rightarrow B)=T(A\rightarrow B)A(A\rightarrow B).
 $$
 
-In our Ising model containing $N$ spins the transition probability for a single configuration is $\frac{1}{N}$. For the acceptance probability we use the ratio of probabilities introduced earlier. Probabilities can not exceed 1, so the boltzmann factor ($\Delta E<0\Rightarrow$) giving a value bigger than 1 is capped in the simulation. In Metropolis-Hastings algorithm, the acceptance probability is defined as
+In our Ising model containing $N$ spins the transition probability for a single configuration is $\frac{1}{N}$. For the acceptance probability we use the ratio of probabilities introduced earlier. Probabilities can not exceed 1, so the boltzmann factor ($\Delta E<0$) giving a value bigger than 1 is capped in the simulation. In Metropolis-Hastings algorithm, the acceptance probability is defined as
 
 $$
 A(\sigma_{x, y}\rightarrow-\sigma_{x, y})=\min\left[1, \frac{P(-\sigma_{x, y})}{P(\sigma_{x, y})}\right]=\min\left[1, e^{-\frac{\Delta E}{k_BT}}\right]
