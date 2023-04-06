@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Implementing a tool for creating point and figure charts using Python"
+title:  "Implementing a tool for creating point-and-figure (P&F) charts using Python"
 date:   2023-04-06
 categories: finance fintech python yfinance
 ---
