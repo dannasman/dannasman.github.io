@@ -7,7 +7,7 @@ categories: finance fintech python yfinance
 
 ## Introduction
 
-In this post we will be implementing a tool for creating [point-and-figure (P&F) charts](https://www.investopedia.com/terms/p/pointandfigurechart.asp) using Python [`yfinance`](https://pypi.org/project/yfinance/) and [`pandas`](https://pandas.pydata.org/). For a while the outlook for the global economy has been gloomy and a lot of stocks have come down on their prices giving a potential opportunity to buy them. Implementing a tool that displays P&F charts will help us find the best [timing](https://www.investopedia.com/thmb/yhY3ByCRFuTZdWwou4_j52euDIE=/750x0/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/PointandFigureCharting_ABasicIntroduction1_3-f2c1607b71134fcc922dff14537b373a.png) for buying (and selling) stocks. 
+In this post we will be implementing a tool for creating [point-and-figure (P&F) charts](https://www.investopedia.com/terms/p/pointandfigurechart.asp) using Python, [`yfinance`](https://pypi.org/project/yfinance/) and [`pandas`](https://pandas.pydata.org/). For a while the outlook for the global economy has been gloomy and a lot of stocks have come down on their prices giving a potential opportunity to buy them. Implementing a tool that displays P&F charts will help us find the best [timing](https://www.investopedia.com/thmb/yhY3ByCRFuTZdWwou4_j52euDIE=/750x0/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/PointandFigureCharting_ABasicIntroduction1_3-f2c1607b71134fcc922dff14537b373a.png) for buying (and selling) stocks. 
 
 ## Point-and-figure (P&F) charts
 
