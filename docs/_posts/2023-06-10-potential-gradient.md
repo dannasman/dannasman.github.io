@@ -12,17 +12,23 @@ In this post we will be playing around with **Enzyme** by calculating the potent
 This post will not get in the details of installing and setting up Enzyme. Detailed installation guide can be found on the Enzyme project website.
 
 The function which we will be focusing on is
+
 $$
 E=-\nabla\mathbf\phi,
 $$
+
 where $E$ is the electric field and $\phi$ is the potential. Our system consists of an area $5\times5~\mathrm{nm}^2$ with a single point charge $q$ in it at $(0~\mathrm{nm}, 0~\mathrm{nm})$. The potential at $(x, y)$ is
+
 $$
 \phi(x, y)=\frac{1}{4\pi\varepsilon\_0}\frac{q}{\sqrt{x^2+y^2}},
 $$
+
 where $\varepsilon$ is the vacuum permittivity. By doing some simple differentiation we get the equation for electric field
+
 $$
 E=\frac{1}{4\pi\varepsilon\_0}\frac{q}{x^2+y^2}\Rightarrow\mathbf{E}=\frac{E}{\sqrt{x^2+y^2}}\begin{bmatrix}x\\\\y\end{bmatrix}.
 $$
+
 Let us write the function in `potential_gradient.cc`:
 ```cpp
 #include <iostream>
