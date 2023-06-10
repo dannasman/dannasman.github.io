@@ -21,20 +21,19 @@ $$
 where $E$ is the electric field and $\phi$ is the potential. Our system consists of an area $5\times5~\mathrm{nm}^2$ with a single point charge $q$ in it at $(0~\mathrm{nm}, 0~\mathrm{nm})$. The potential at $(x, y)$ is
 
 $$
-\phi(x, y)=\frac{1}{4\pi\varepsilon\_0}\frac{q}{\sqrt{x^2+y^2}},
+\phi(x, y)=\frac{1}{4\pi\varepsilon_0}\frac{q}{\sqrt{x^2+y^2}},
 $$
 
-where $\varepsilon$ is the vacuum permittivity. By doing some simple differentiation we get the equation for electric field
+where $\varepsilon_0$ is the vacuum permittivity. By doing some simple differentiation we get the equation for electric field
 
 $$
-E=\frac{1}{4\pi\varepsilon\_0}\frac{q}{x^2+y^2}\Rightarrow\mathbf{E}=\frac{E}{\sqrt{x^2+y^2}}\begin{bmatrix}x\\\\y\end{bmatrix}.
+E=\frac{1}{4\pi\varepsilon_0}\frac{q}{x^2+y^2}\Rightarrow\mathbf{E}=\frac{E}{\sqrt{x^2+y^2}}\begin{bmatrix}x\\\\y\end{bmatrix}.
 $$
 
 Let us write the function in `potential_gradient.cc`:
 ```cpp
 #include <iostream>
 #include <math.h>
-#include <vector>
 
 constexpr double k = 12.5663706144; //4*pi
 constexpr double q = 0.160217663; //elementary charge
@@ -43,7 +42,7 @@ double potential(double r, double q) {
     return q / (k*r);
 }
 ```
-Our function calculates $\varepsilon\_0E$ at distance `r` from the point charge `q`. Next we write our own function for the derivative called `dpotential`. In `potential_gradient.cc`:
+Our function calculates $\varepsilon_0E$ at distance `r` from the point charge `q`. Next we write our own function for the derivative called `dpotential`. In `potential_gradient.cc`:
 ```cpp
 //...
 double dpotential(double r, double q) {
