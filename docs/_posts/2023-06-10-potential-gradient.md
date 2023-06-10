@@ -27,7 +27,7 @@ $$
 where $\varepsilon_0$ is the vacuum permittivity. By doing some simple differentiation we get the equation for electric field
 
 $$
-E=\frac{1}{4\pi\varepsilon_0}\frac{q}{x^2+y^2}\Rightarrow\mathbf{E}=\frac{E}{\sqrt{x^2+y^2}}\begin{bmatrix}x\\\\y\end{bmatrix}.
+E=\frac{1}{4\pi\varepsilon_0}\frac{q}{x^2+y^2}\Rightarrow\mathbf{E}=\frac{E}{\sqrt{x^2+y^2}}\begin{bmatrix}x\\ y\end{bmatrix}.
 $$
 
 Let us write the function in `potential_gradient.cc`:
