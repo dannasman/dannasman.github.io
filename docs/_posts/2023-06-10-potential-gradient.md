@@ -4,6 +4,7 @@ title:  "Playing around with Enzyme by calculating potential gradient"
 date:   2023-06-10 18:00:00 +0200
 categories: enzyme enzyme-ad automatic-differentiation potential-gradient
 ---
+{% include mathjax.html %}
 
 In this post we will be playing around with **Enzyme** by calculating the potential gradient.
 > The Enzyme project is a tool that takes arbitrary existing code as LLVM IR and computes the derivative (and gradient) of that function.
