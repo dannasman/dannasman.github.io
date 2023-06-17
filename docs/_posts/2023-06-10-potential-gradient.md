@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Playing around with Enzyme by calculating potential gradient"
+title:  "Calculating potential gradient with Enzyme"
 date:   2023-06-10 18:00:00 +0200
 categories: enzyme enzyme-ad automatic-differentiation potential-gradient
 ---
