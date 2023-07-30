@@ -100,7 +100,7 @@ def get_month_index(date):
                 case '12':
                     return 11
 ```
-With the help of step parameter `round_to_nearest` lets us round the price to the nearest price level. `get_month_index` determine the month from `date` which is in `yyyy-mm-dd` form and return an index which we can later use to mark the month to the chart. Now that we have our helper functions we can begin writing the code for P&F charts. In `point_and_figure.py`:
+With the help of step parameter `round_to_nearest` lets us round the price to the nearest price level. `get_month_index` determines the month from `date` which is in `yyyy-mm-dd` form and returns an index which we can later use to mark the month to the chart. Now that we have our helper functions we can begin writing the code for P&F charts. In `point_and_figure.py`:
 ```python
 #...
 def chart(step, ticker, startDate, endDate=None):
