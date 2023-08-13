@@ -251,3 +251,4 @@ And there we have it! P&F chart of Sampo starting with box size 0.5 starting fro
 s = chart(0.5, "SAMPO.HE", "2022-01-01")
 print(s)
 ```
+Full source code can be found [here](https://github.com/dannasman/point_and_figure).
