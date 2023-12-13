@@ -15,23 +15,23 @@ For the past few weeks I have been working on a code that tries to simulate quan
 
 Following rules apply for arithmetic operations on complex numbers:
 
- - *Addition/subtraction*
+*Addition/subtraction*
  
- $$
- (a+bi)\pm(c+di)=(a\pm c)+(b\pm d)i
- $$
+$$
+(a+bi)\pm(c+di)=(a\pm c)+(b\pm d)i
+$$
  
- - *Multiplication*
- 
- $$
- (a+bi)(c+di)=(ac-bd)+(ad+bc)i
- $$
- 
- - *Division*
- 
- $$
- \frac{a+bi}{c+di}=\frac{ac+bd}{c^2+d^2}+\frac{bc-ad}{c^2+d^2}i
- $$
+*Multiplication*
+
+$$
+(a+bi)(c+di)=(ac-bd)+(ad+bc)i
+$$
+
+*Division*
+
+$$
+\frac{a+bi}{c+di}=\frac{ac+bd}{c^2+d^2}+\frac{bc-ad}{c^2+d^2}i
+$$
 
 ## Implementation
 
