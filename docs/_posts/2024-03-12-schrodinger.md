@@ -10,14 +10,14 @@ categories: physics
 The wave-particle model states that matter and electromagnetic waves posess both particle and wave properties. The energy of a particle is quantized and is given by $E=h\omega$, where $h$ is the Planck's constant and $\omega$ is the frequency of the electromagnetic wave associated with it. The momentum of the particle is given by $\mathbf{p}=h\mathbf{k}$, where $\mathbf{k}$ is the wavevector.
 
 Let there be a free particle whose position we know exactly to be $\mathbf{r}$ at time $t$. Let $f(\mathbf{r}, t)=\delta(\mathbf{r}-\mathbf{r}')\delta(t-t')$ be the probability density function for the particle in spacetime. By taking a Fourier transform of the probability density function we obtain
-a
-\begin{equation}
+
+$$\begin{equation}
 \begin{split}
 \hat{f}(\mathbf{k}, \omega) & =\int\int f(\mathbf{r}', t)e^{i\mathbf{k}\cdot\mathbf{r}'}e^{-i\omega t'}d\mathbf{r}'dt'\\
 & =\int\int \delta(\mathbf{r}-\mathbf{r}')\delta(t-t')e^{i\mathbf{k}\cdot\mathbf{r}'}e^{-i\omega t'}d\mathbf{r}'dt'=e^{i(\mathbf{k}\cdot\mathbf{r}-\omega t)}.
 \end{split}
 \label{eq:1}
-\end{equation}
+\end{equation}$$
 
 Next we define a wave function
 
