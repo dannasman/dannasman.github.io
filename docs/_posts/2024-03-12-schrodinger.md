@@ -12,7 +12,10 @@ The wave-particle model states that matter and electromagnetic waves posess both
 Let there be a free particle whose position we know exactly to be $\mathbf{r}$ at time $t$. Let $f(\mathbf{r}, t)=\delta(\mathbf{r}-\mathbf{r}')\delta(t-t')$ be the probability density function for the particle in spacetime. By taking a Fourier transform of the probability density function we obtain
 a
 \begin{equation}
-\hat{f}(\mathbf{k}, \omega)=\int\int f(\mathbf{r}', t)e^{i\mathbf{k}\cdot\mathbf{r}'}e^{-i\omega t'}d\mathbf{r}'dt'=\int\int \delta(\mathbf{r}-\mathbf{r}')\delta(t-t')e^{i\mathbf{k}\cdot\mathbf{r}'}e^{-i\omega t'}d\mathbf{r}'dt'=e^{i(\mathbf{k}\cdot\mathbf{r}-\omega t)}.
+\begin{split}
+\hat{f}(\mathbf{k}, \omega) & =\int\int f(\mathbf{r}', t)e^{i\mathbf{k}\cdot\mathbf{r}'}e^{-i\omega t'}d\mathbf{r}'dt'\\
+& =\int\int \delta(\mathbf{r}-\mathbf{r}')\delta(t-t')e^{i\mathbf{k}\cdot\mathbf{r}'}e^{-i\omega t'}d\mathbf{r}'dt'=e^{i(\mathbf{k}\cdot\mathbf{r}-\omega t)}.
+\end{split}
 \label{eq:1}
 \end{equation}
 
