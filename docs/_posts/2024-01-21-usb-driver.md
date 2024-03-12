@@ -2,7 +2,7 @@
 layout: post
 title: "Writing a simple USB device driver that detects an USB device in Linux"
 date: 2024-01-21
-categories: complex-numbers rust simd
+categories: linux kernel driver kernel-module
 ---
 
 # Introduction
