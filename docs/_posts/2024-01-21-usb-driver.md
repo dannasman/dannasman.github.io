@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Writing a simple USB device driver that detects an USB device in Linux"
+title: "Writing a simple USB device driver"
 date: 2024-01-21
 categories: linux kernel driver kernel-module
 ---
