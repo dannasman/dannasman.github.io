@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="../assets/css/styles.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+        <script type="text/x-mathjax-config">
+            MathJax.Hub.Config({
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    tagSide: "right"
+                },
+                tex2jax: {
+                    inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+                    displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+                    processEscapes: true
+                }
+            });
+            MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+                MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+                    clearTag() {
+                        if (!this.global.notags) {
+                            this.super(arguments).clearTag.call(this);
+                        }
+                    }
+                });
+            });
+        </script>
+        <script type="text/javascript" async
+            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+        </script>
+        <title>Title</title>
+    </head>
+    <body>
+        <header>
+            <h1 class="header-title">Dan's Blog</h1>
+            <nav>
+                <ul>
+                    <li><a href="../index.html">Posts</a></li>
+                    <li><a href="../about.html">About</a></li>
+                </ul>
+            </nav>
+        </header>
+        <article>
+            <h1>Schrödinger equation from scratch</h1>
+            <time datetime="2024-03-12">12.3.2024</time>
+            <p>The wave-particle model states that matter and electromagnetic waves posess both particle and wave properties. The energy of a particle is quantized and is given by \(E=h\omega\), where \(h\) is the Planck's constant and \(\omega\) is the frequency of the electromagnetic wave associated with it. The momentum of the particle is given by \(\mathbf{p}=h\mathbf{k}\), where \(\mathbf{k}\) is the wavevector.</p>
+            <p>In quantum mehcanics wave packets are used to describe free particles. The wave packets can be decomposed into a Fourier integral of plane waves of the form</p>
+            \[\begin{equation}
+\psi(\mathbf{r}, t)\propto e^{i(\mathbf{k}\cdot\mathbf{r}-\omega t)}.
+\label{eq:1}
+\end{equation}\]
+            <p>By setting \(h=1\) and using relations \(E=h\omega=\omega\) and \(\mathbf{p}=h\mathbf{k}=\mathbf{k}\) we get</p>
+            \[\begin{equation}
+\psi(\mathbf{r}, t)=Ne^{i(\mathbf{p}\cdot\mathbf{r}-Et)},
+\label{eq:2}
+\end{equation}\]
+        <p>where \(N\) is a normalization constant.</p>
+        <p>To extract the energy and momentum from the wave function we indentify the energy operator \(\hat{E}=i\dfrac{\partial}{\partial t}\) and the momentum operator \(\hat{p}=-i\nabla\) giving</p>
+        \[\begin{equation*}
+            \begin{split}
+                \hat{E}\psi&amp;=E\psi \\
+                \hat{p}\psi&amp;=p\psi.
+            \end{split}
+        \end{equation*}\]
+        <p>The energy of a non-relativistic free particle in the classical description is described by Hamiltonian</p>
+        \[\begin{equation}
+            H=E=T+V=\frac{\mathbf{p}^2}{2m}+V,
+            \label{eq:3}
+        \end{equation}\]
+        <p>where \(K\) is the kinetic energy and \(V\) is the potential energy. The energy of a non-relativistic free particle in the quantum mechanical approach is obtained by substituting the momentum and energy in equation \ref{eq:3} with the operators defined earlier. We end up with</p>
+        \[\begin{equation}
+i\dfrac{\partial\psi(\mathbf{r}, t)}{\partial t}=\hat{H}\psi(\mathbf{r}, t)=\left(-\frac{1}{2m}\nabla^2+\hat{V}\right)\psi(\mathbf{r}, t).
+        \end{equation}\]
+        </article>
+        <footer>
+            <p>In this blog you can find posts about projects I have been working on.</p>
+            <ul>
+                <li><a href="https://github.com/dannasman">GitHub</a></li>
+                <li>dan.nasman@gmail.com</li>
+            </ul>
+        </footer>
+    </body>
+</html>
+<!--
+
+where $K$ is the kinetic energy and $V$ is the potential energy. The energy of a non-relativistic free particle in the quantum mechanical approach is obtained by substituting the momentum and energy in equation \ref{eq:3} with the operators defined earlier. We end up with
+
+\begin{equation}
+i\dfrac{\partial\psi(\mathbf{r}, t)}{\partial t}=\hat{H}\psi(\mathbf{r}, t)=\left(-\frac{1}{2m}\nabla^2+\hat{V}\right)\psi(\mathbf{r}, t).
+\end{equation}-->

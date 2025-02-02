@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script type="text/javascript" async
+            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+        </script>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+        <link href="../assets/css/styles.css" rel="stylesheet">
+        <title>Rusty compiler: Writing a lexer in Rust</title>
+    </head>
+    <body>
+        <header>
+            <h1 class="header-title">Dan's Blog</h1>
+            <nav>
+                <ul>
+                    <li><a href="../index.html">Posts</a></li>
+                    <li><a href="../about.html">About</a></li>
+                </ul>
+            </nav>
+        </header>
+        <article>
+            <h1>Rusty compiler: Writing a lexer in Rust</h1>
+            <time datetime="2022-08-26">26.8.2022</time>
+            <p>In this post we will be implementing a lexer in Rust. Lexer is a tool used in Compiler design to read characters from the input and group then into tokens. These tokens are then passed on forward to a parser, which will be the topic of the second part of this series.</p>
+            <p>Our lexer will be able to group the characters into 15 different tokens. Let us enumerate these tokens in <code>lexer.rs</code>:</p>
+            <pre><code class="language-rust">#[derive(Debug, Clone)]
+pub enum Token    {
+    Num(f64),
+    Id(String),
+    True(String),
+    False(String),
+    If(String),
+    Else(String),
+    While(String),
+    And(String),
+    Or(String),
+    Eql(String),
+    Ne(String),
+    Le(String),
+    Ge(String),
+    Lt(String),
+    Gt(String),
+}</code></pre>
+            <p><code>Num</code> corresponds to a number and has a type <code>f64</code>. In our implementation all digits are identified as 64-bit floating point numbers.</p>
+            <p><code>True</code> and <code>False</code> correspond to boolean values <code>true</code> and <code>false</code>. They are given <code>String</code> type values <code>"true"</code> and <code>"false"</code> respectively.</p>
+            <p><code>If</code>, <code>Else</code> and <code>While</code> correspond to control flow operators. They are given <code>String</code> type values <code>"if"</code>, <code>"else"</code> and <code>"while"</code> respectively.</p>
+            <p><code>And</code> and <code>Or</code> correspond to logical operators. They are given <code>String</code> type values <code>"&gt;&gt;"</code>, <code>"||"</code> respectively.</p>
+            <p><code>Eql</code>, <code>Ne</code>, <code>Le</code>, <code>Ge</code>, <code>Lt</code> and <code>Gt</code> correspond to relational operators. They are given <code>String</code> type values <code>"=="</code>, <code>"!="</code> <code>"&lt;="</code>, <code>"&gt;="</code>, <code>"&lt;"</code> and <code>"&gt;"</code> respectively.</p>
+            <p><code>Id</code> corresponds to a combination of characters beginning with a alphabetic character that did not classify as any other token above.</p>
+            <p>Now that we have our <code>Token</code> enum we can move on to implement the actual <code>lex</code> function that does all the heavy lifting. The function recieves a reference to the input as a parameter and returns a vector of Tokens if there are no errors. In <code>lexer.rs</code> we first write:</p>
+            <pre><code class="language-rust">pub fn lex(input: &amp;String) -&gt; Result&lt;Vec&lt;Token&gt;, String&gt;    {
+    let mut result = Vec::new();
+
+    let mut words = HashMap::from([
+        ("true".to_string(),  Token::True("true".to_string())),
+        ("false".to_string(), Token::False("false".to_string())),
+        ("if".to_string(),    Token::If("if".to_string())),
+        ("else".to_string(),  Token::Else("else".to_string())),
+        ("while".to_string(), Token::While("while".to_string())),
+    ]);
+
+    let mut it = input.chars().peekable();
+
+    let mut _lineno = 1;
+
+    return Ok(result);
+}</code></pre>
+            <p>In the snippet above we create a vector of type <code>Vec&lt;Token&gt;</code> for the Tokens to be saved in. We also create an hashmap for words that already have been assigned a token. To process the input we create an peekable iterator <code>it</code>. To help debugging we also keep track of the line number with variable <code>_lineno</code>.</p>
+            <p>Now to analyzing the input. Using a <code>while</code> loop, <code>match</code> expression and the iterator <code>it</code> we can read the input character by character. Let us first make the <code>lex</code> function ignore spaces <code>' '</code> and tabs <code>'\t'</code> and increase the line number when it comes across newline <code>'\n'</code>. In <code>lexer.rs</code>:</p>
+            <pre><code class="language-rust">//...
+
+    while let Some(&c) = it.peek()  {
+        match c {
+            ' ' | '\t' => {
+                it.next();
+            },
+            '\n'  =>  {
+                _lineno += 1;
+                it.next();
+            },
+        }
+    }
+
+    return Ok(result);
+}</code></pre>
+            <p>Next up are the logical operators. If a character matches with <code>'&amp;'</code>, we iterate onto the next character. If the next character also matches with <code>'&amp;'</code> we save a <code>And</code> token with value <code>"&amp;&amp;"</code> to the <code>result</code> vector. If the next character does not match to <code>'&amp;'</code> we save the previous character (<code>'&amp;'</code>) as a <code>Id</code> token and keep the next character for the next iteration of the <code>while</code> loop. Same applies to <code>Or</code> token. In <code>lexer.rs</code>:</p>
+            <pre><code class="language-rust">//...
+        match c {
+            //...
+            '&amp;' =&gt;  {
+                it.next();
+                let ch = it.peek();
+                if let Some('&amp;') = ch   {
+                    result.push(Token::And("&amp;&amp;".to_string()));
+                    it.next();
+                } else  {
+                    result.push(Token::Id("&amp;".to_string()));
+                };
+            },
+            '|' =&gt;  {
+                it.next();
+                let ch = it.peek();
+                if let Some('|') = ch   {
+                    result.push(Token::Or("||".to_string()));
+                    it.next();
+                } else  {
+                    result.push(Token::Id("|".to_string()));
+                };
+            },
+        }
+    }
+
+    return Ok(result);
+}</code></pre>
+            <p>The relational operators are quite similar to the logical operators when it comes to our lexer. First we match the first character and if the second character also matches the token's second character, token is saved with value corresponding to it. Otherwise the first character is saved as <code>Id</code>, <code>Lt</code> or <code>Gt</code> token and we move on keeping track of the second character. In <code>lexer.rs</code>:</p>
+            <pre><code class="language-rust">//...
+        match c {
+            //...
+            '=' =&gt;  {
+                it.next();
+                let ch = it.peek();
+                if let Some('=') = ch   {
+                    result.push(Token::Eql("==".to_string()));
+                    it.next();
+                } else  {
+                    result.push(Token::Id("=".to_string()));
+                };
+            },
+            '!' =&gt;  {
+                it.next();
+                let ch = it.peek();
+                if let Some('=') = ch   {
+                    result.push(Token::Ne("!=".to_string()));
+                    it.next();
+                } else  {
+                    result.push(Token::Id("!".to_string()));
+                };
+            },
+            '&lt;' =&gt;  {
+                it.next();
+                let ch = it.peek();
+                if let Some('=') = ch   {
+                    result.push(Token::Le("&lt;=".to_string()));
+                    it.next();
+                } else  {
+                    result.push(Token::Lt("&lt;".to_string()));
+                };
+            },
+            '&gt;' =&gt;  {
+                it.next();
+                let ch = it.peek();
+                if let Some('=') = ch   {
+                    result.push(Token::Ge("&gt;=".to_string()));
+                    it.next();
+                } else  {
+                    result.push(Token::Gt("&gt;".to_string()));
+                };
+            },
+        }
+    }
+
+    return Ok(result);
+}</code></pre>
+            <p>Things get a bit more complicated when it comes to numbers. If the character matches to any digit between 0 and 9 it isturned to a floating point digit and saved as <code>Num</code> token.  Whether the number has decimals or not is checked by inspecting if the next character is a <code>'.'</code> followed by more digits. In <code>lexer.rs</code>:</p>
+            <pre><code class="language-rust">//...
+        match c {
+            //...
+            '0'..='9' =&gt;    {
+                let mut n = c.to_string()
+                                .parse::<f64>()
+                                .expect("Character not a digit.");
+
+                it.next();
+                let mut digitch = it.peek();
+
+                while let Some(&amp;i) = digitch {
+                    if !i.is_digit(10)   {
+                        if i == '.'    {
+                            let mut d = 10.0;
+                            it.next();
+                            digitch = it.peek();
+
+                            while let Some(&amp;j) = digitch    {
+                                if !j.is_digit(10) {
+                                    digitch = None;
+                                } else  {
+                                    let f = j.to_string()
+                                            .parse::<f64>()
+                                            .expect(
+                                            "Character not \
+                                            a digit.");
+                                    n = n + f / d;
+                                    d = d * 10.0;
+                                    it.next();
+                                    digitch = it.peek();
+                                }
+                            }
+                        } else  {
+                            digitch = None;
+                        }
+                    } else  {
+                        let digit = i.to_string()
+                                    .parse::<f64>()
+                                    .expect("Character not a digit.");
+                        n = n*10.0 + digit;
+                        it.next();
+                        digitch = it.peek();
+                    }
+                }
+                result.push(Token::Num(n));
+            }
+        }
+    }
+
+    return Ok(result);
+}</code></pre>
+            <p>Next up we have words. If the character is alphabetical, we move the iterator forward and all group the characters a word until the iterator points to a character that is not alphabetical or a digit. We then look whether a token with the word as its value already exists in the <code>words</code> hashmap. If it does not, we insert token <code>Id</code> with the word as its value onto the hashmap and push the token to the <code>result</code> vector. Otherwise we save the token returned from <code>words</code> to the <code>results</code> vector. In <code>lexer.rs</code>:</p>
+            <pre><code class="language-rust">//...
+        match c {
+            //...
+            'A'..='Z' | 'a'..='z' =&gt; {
+                let mut s = String::new();
+                s.push(c);
+
+                it.next();
+                let mut ch = it.peek();
+                while let Some(&amp;i) = ch {
+                    if !i.is_digit(10) &amp;&amp; !i.is_alphabetic()  {
+                        ch = None;
+                    } else  {
+                        s.push(i);
+                        it.next();
+                        ch = it.peek();
+                    }
+                }
+                println!("{}", s);
+                match words.get(&amp;s)  {
+                    Some(t) =&gt; result.push(Token::clone(t)),
+                    None =&gt; {
+                        result.push(Token::Id(s.clone()));
+                        words.insert(s.clone(), Token::Id(s.clone()));
+                    },
+                }
+            },
+        }
+    }
+
+    return Ok(result);
+}</code></pre>
+            <p>Lastly we have the characters that have didn't match with any of the conditions above. In these cases a <code>Id</code> token with the character as its value is saved to the <code>results</code> vector. In <code>lexer.rs</code>:</p>
+            <pre><code class="language-rust">//...
+        match c {
+            //...
+            _ =&gt; {
+                result.push(Token::Id(c.to_string()));
+                it.next();
+            },
+        }
+    }
+
+    return Ok(result);
+}</code></pre>
+            <p>We finalize the code by writing couple of tests. In <code>lexer.rs</code>:</p>
+            <pre><code class="language-rust">
+//...
+#[cfg(test)]
+mod tests    {
+    use super::*;
+
+    #[test]
+    fn correct_amount_of_tokens()   {
+        let input = String::from("1 _ != &amp;&amp; =ok 3.4 1.0=_");
+        let result = lex(&amp;input);
+        match result    {
+            Ok(r) =&gt; assert_eq!(10, r.len()),
+            Err(_) =&gt; println!("Error getting the return value."),
+        }
+    }
+
+    #[test]
+    fn correct_token_types()    {
+        let input = String::from("1 _ while != &amp;&amp; =ok \
+                    3.4 1.0=_ true false if else true1");
+        let result = lex(&amp;input);
+        match result    {
+            Ok(r) =&gt;    {
+                let output = format!("{:?}", r);
+                assert_eq!(r#"[Num(1.0), Id("_"), While("while"), \
+                Ne("!="), And("&amp;&amp;"), Id("="), Id("ok"), Num(3.4), \
+                Num(1.0), Id("="), Id("_"), True("true"), \
+                False("false"), If("if"), Else("else"), Id("true1")]"#,
+                output)
+            },
+            Err(_) =&gt; println!("Error getting the return value."),
+        }
+    }
+}</code></pre>
+            <p>We now have a working lexer. Next step is to implement a parser that analyses the tokens returned by the lexer. Stay tuned.</p>
+        </article>
+        <footer>
+            <p>In this blog you can find posts about projects I have been working on.</p>
+            <ul>
+                <li><a href="https://github.com/dannasman">GitHub</a></li>
+                <li>dan.nasman@gmail.com</li>
+            </ul>
+        </footer>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+    </body>
+</html>
