@@ -18,7 +18,7 @@ header {
     width: 700px;
 }
 
-@media (max-width: 700px) {
+@media (min-width: 400px) and (max-width: 700px) {
     header {
         margin-left: auto;
         margin-right: auto;
@@ -211,12 +211,24 @@ article img[class="holopin"] {
     width: 700px;
 }
 
-@media (max-width: 700px) {
+@media (min-width: 400px) and (max-width: 700px) {
     article {
         margin-left: auto;
         margin-right: auto;
-        font-size: 20px;
+        font-size: 17px;
         width: 400px
+    }
+    
+    article img {
+        display: block;
+        margin: 0 auto;
+        width: 400px;
+    }
+
+    article figure {
+        display: block;
+        margin: 0 auto;
+        width: 400px;
     }
 
     article img[class="holopin"] {
