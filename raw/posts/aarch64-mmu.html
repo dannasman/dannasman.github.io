@@ -1,0 +1,358 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+		<link href="../assets/css/styles.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+		<title> Quick and Dirty AArch64 MMU setup</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="header-title">Dan's Blog</h1>
+			<nav>
+				<ul>
+					<li><a href="../index.html">Posts</a></li>
+					<li><a href="../about.html">About</a></li>
+				</ul>
+			</nav>
+		</header>
+		<article>
+			<h1> Quick and Dirty AArch64 MMU setup</h1>
+			<time datetime="2024-09-13">13.09.2024</time>
+			<h2>Introduction</h3>
+			<p>This post covers the process of initializing the memory management unit (MMU) for ARMv8-a processor executing in AArch64 state. The example code is from a bare metal project I am currently working on and is meant to be run on a QEMU System Emulators <a href="https://www.qemu.org/docs/master/system/arm/virt.html"><code>virt</code></a> board with cpu type <code>cortex-a53</code> and 2 GB of RAM.</p>
+			<h2>Entering Exception Level 1 (EL1)</h3>
+			<p>The setup is done in the Exception level 1 (EL1), where OS kernels usually operate. Before the MMU configuration we need to make sure that we are in EL1. This is done by looking at the value of <code>CurrentEL</code> register. <code>CurrentEL</code> is a 32-bit register with bits [31:4] and [1:0] reserved and set to zero. The interesting bits [3:2] tell us the current exception level. In the boot assembly we write:</p>
+			<pre><code class="language-assembly">
+// ...
+    msr     spsel, 1
+    mrs     x0, CurrentEL
+    cmp     x0, 0b0100
+    beq     in_el1
+    blo     in_el0
+    cmp     x0, 0b1000
+    beq     in_el2
+in_el0:
+    b       .
+in_el3:
+    mrs     x0, scr_el3
+    orr     x0, x0, (1 &lt;&lt; 10)
+    orr     x0, x0, (1 &lt;&lt; 0)
+    and     x0, x0, ~(1 &lt;&lt; 3)
+    and     x0, x0, ~(1 &lt;&lt; 2)
+    and     x0, x0, ~(1 &lt;&lt; 1)
+    msr     scr_el3, x0
+    mov     x0, 0b01001
+    msr     spsr_el3, x0
+    adr     x0, in_el2
+    msr     elr_el3, x0
+    eret
+in_el2:
+    mrs     x0, hcr_el2
+    orr     x0, x0, (1 &lt;&lt; 31)
+    and     x0, x0, ~(1 &lt;&lt; 5)
+    and     x0, x0, ~(1 &lt;&lt; 4)
+    and     x0, x0, ~(1 &lt;&lt; 3)
+    msr     hcr_el2, x0
+    mov     x0, 0b00101
+    msr     spsr_el2, x0
+    adr     x0, in_el1
+    msr     elr_el2, x0
+    eret
+in_el1:
+    mov     x0, 0b0101
+    msr     spsr_el1, x0
+    msr     DAIFSet, 0b1111
+// We begin MMU initialization here.
+			</code></pre>
+			<p>If the <code>CurrentEL</code> value equals to <code>0b0100</code> (bits [3:2] equal to <code>0b01</code>) we are in EL1 and we can jump straight to <code>in_el1</code>. If <code>CurrentEL</code> is lower than <code>0b0100</code> we know that we are in EL0. Since one can not enter a higher Exception level from a lower one we just enter an infinite loop. In the case of <code>CurrentEL</code> being <code>0b1000</code> we jump to <code>in_el2</code>. If it is higher we continue to <code>in_el3</code>.</p>
+			<h3>In EL3</h2>
+			<p>While in EL3 we modify the Secure Configuration Register <code>scr_el3</code> and the Saved Program Status Register <code>spsr_el3</code>. By setting the bit [10] of <code>scr_el3</code> to 1 we determine that the next lower level (EL2) is AArch64. By setting the bit [0] to 1 we determine that EL0 and EL1 are in Non-secure state, and that memory accessses from those ELs can no access Secure memory. This may not be necessary in all cases of MMU initialization. We also make sure that bits [3] (EA), [2] (FIQ) and [1] (IRQ) are all set to 0 so that external aborts, SError interrupts, physical FIQ and physical IRQ are not taken in EL3 when executing at other ELs, EL1 in our case.</p>
+			<p>For <code>spsr_el3</code> we set the bit [4] to 0 to indicate that the exception was taken from AArch64.  We set bits [3:0] to <code>0b1001</code> (bits [3:2] hold the Exception level, bit [0] is set to 1 to indicate that the exception stack pointer is determined by the EL) since exceptions are going to be taken from EL2 after continuing to <code>in_el2</code>.</p>
+			<p>Next we write the address of <code>in_el2</code> to the Exception Link Register <code>elr_el3</code>. We then call <code>eret</code>, which switches the exception level from EL3 to EL2 and jumps to <code>in_el2</code>.</p>
+			<h3>In EL2</h2>
+			<p>The steps in EL2 are fairly similar to the ones of EL3. The configuration register of EL2 is the Hypervisor Configuration Register <code>hcr_el2</code>. We set the bit [31] to 1 since EL1 will be AArch64. Bits [5] (AMO), [4] (IMO) and [3] (FMO) should all be set to 0 so that external aborts, SError interrupts, physical IRQ and physical FIQ are not taken in EL2 when executing at ELs lower than EL2.</p>
+			<p>The <code>spsr_el2</code> is set up the same way as <code>spsr_el3</code> but with bits [3:2] corresponding to EL1. We write the address of <code>in_el1</code> to <code>elr_el2</code> and call <code>eret</code> to switch to EL1 and jump to <code>in_el1</code>.</p>
+			<h3>In EL1</h2>
+			<p>In El1 we set up the <code>spsr_el1</code> the same way as in the other ELs. We also set all interrupt mask bits to 1. In addition to these steps one could also set up exception tables at this point.</p>
+			<h2>Setting up the MMU</h3>
+			<p>Since this is a "quick and dirty" setup, we try to get a working MMU with as little configuration as possible. We will be using five system registers: the Memory Attribute Indirection Register <code>mair_el1</code>, the Translation Control Register <code>tcr_el1</code>, Translation Table Base Registers <code>ttbr0_el1</code>/<code>ttbr1_el1</code> and the System Control Register <code>sctlr_el1</code>.</p>
+			<p>Since we are in AArch64 our virtual address space spans from <code>0x0000_0000_0000_0000</code> to <code>0xffff_ffff_ffff_ffff</code>. We are going to separate the space into user (<code>0x0000_0000_0000_0000</code>-<code>0x0000_ffff_ffff_ffff</code>) and kernel space (<code>0xffff_0000_0000_0000</code>-<code>0xffff_ffff_ffff_ffff</code>).</p>
+			<p>We will be using a 4 KB granule size with 48-bit virtual addresses. A 48-bit virtual address has the following structure:</p>
+            <pre><code class="language-assembly">
++--------------+--------------+--------------+--------------+-------------+
+| bits [47:39] | bits [38:30] | bits [29:21] | bits [20:12] | bits [11:0] |
+|--------------+--------------+--------------+--------------+-------------|
+| L0 table idx | L1 table idx | L2 table idx | L3 table idx | offset &amp; pa |
++--------------+--------------+--------------+--------------+-------------+
+            </code></pre>
+            <p>The bits [11:0] describe the offset within the 4 KB page (<code>pa</code> refers to physical address). The bits [20:12] act as an index for a table (Level 3 table) of 4 KB pages with 512 entries (indexes range from <code>0b000000000</code> to <code>0b111111111</code>). The bits [29:30] in turn act as indexes for Level 2 table containing entries each pointing to a Level 3 table. A Level 2 table entry can also point to a <code>512 * 4 KB = 2 MB</code> block of memory. Similary, bits [38:30] act as indexes of the Level 1 table with each entry pointing to either a Level 2 table or a <code>512 * 512 * 4 KB = 1 GB</code> memory block. The Level 0 (bits [47:39] serve as indexes) in turn points to a Level 1 table or a <code>512 GB</code> memory block.</p>
+			<p>For the purpose of my bare metal project I wanted the translation table to cover 2 GB of physical memory. Since the Level 0 table holds 256 GB entries there should be only one entry in the table in our case. Level 1 table holds two 1 GB memory blocks. This means that there is no need to set up tables lower than Level 1!</p>
+			<p>At this point you may be wondering about the remaining bits [63:48] of the virtual address. These bits tell which translation table base register to use. If they are all set to zero <code>ttbr0_el1</code> is used, if they are all set to one <code>ttbr1_el1</code> is used. If the bits hold ones and zeros a translation fault is generated. This plays well with our kernel and user space separation. <code>ttbr0_el1</code> holds the translation table for the user space  and <code>ttbr1_el1</code> for the kernel space. In our simplified case <code>ttbr0_el1</code> and <code>ttbr1_el1</code> can be set to point to the same table.</p>
+			<p>With this information we are ready to configure the MMU.</p>
+			<h3>TCR_EL1</h2>
+			<p>The <code>tcr_el1</code> register holds information relevant to the structure of our virtual addresses. We are going to set up <code>tcr_el1</code> the following way:</p>
+			<ul>
+				<li>IPS, bits [34:32]</li>
+                <ul>
+                    <li>Intermediate Physical Address Size</li>
+                    <li>Set to <code>0b101</code> which corresponds to 48 bits</li>
+                </ul>
+				<li>TG1, bits [31:30]</li>
+                <ul>
+                    <li><code>ttbr1_el1</code> granule size</li>
+                    <li>Set to <code>0b10</code> which corresponds to 4 KB</li>
+                </ul>
+				<li>SH1, bits [29:28]</li>
+                <ul>
+				    <li>Shareability attribute for memory associated with <code>ttbr1_el1</code> related translation table walks</li>
+				    <li>Set to <code>0b11</code> which corresponds to Inner Shareable</li>
+                </ul>
+				<li>ORGN1, bits [27:26]</li>
+                <ul>
+				    <li>Outer cacheability attribute for memory associated with <code>ttbr1_el1</code> related translation table walks</li>
+				    <li>Set to <code>0b01</code> which corresponds to Normal memory, Outer Write-Back Write-Allocate Cacheable</li>
+                </ul>
+				<li>IRGN1, bits [25:24]</li>
+                <ul>
+				    <li>Inner cacheability attribute for memory associated with <code>ttbr1_el1</code> related translation table walks</li>
+				    <li>Set to <code>0b01</code> which corresponds to Normal memory, Inner Write-Back Write-Allocate Cacheable</li>
+                </ul>
+				<li>EPD1, bit [23]</li>
+                <ul>
+				    <li>Disable translation table walk for translations using <code>ttbr1_el1</code></li>
+				    <li>Set to <code>0b0</code> since we want to perform translation table walks using <code>ttbr1_el1</code></li>
+                </ul>
+				<li>A1, bit [22]</li>
+                <ul>
+				    <li>Selects whether <code>ttbr0_el1</code> or <code>ttbr1_el1</code> defines the Address Space Identifier (ASID)</li>
+				    <li>Set to <code>0b0</code> (<code>ttbr0_el1</code> defines the ASID)</li>
+                </ul>
+				<li>T1SZ, bits [21:16]</li>
+                <ul>
+				    <li>The size offset of the memory region addressed by <code>ttbr1_el1</code>.</li>
+				    <li>Set to <code>16</code>, since we want <code>64 - 16 = 48</code> significant bits for our virtual addresses.</li>
+                </ul>
+				<li>TG0, bits [15:14]</li>
+                <ul>
+				    <li><code>ttbr0_el1</code> granule size</li>
+				    <li>Set to <code>0b00</code> which corresponds to 4 KB</li>
+                </ul>
+				<li>SH0, bits [13:12]</li>
+                <ul>
+				    <li>Shareability attribute for memory associated with <code>ttbr0_el1</code> related translation table walks</li>
+				    <li>Set to <code>0b11</code> which corresponds to Inner Shareable</li>
+                </ul>
+				<li>ORGN0, bits [11:10]</li>
+                <ul>
+				    <li>Outer cacheability attribute for memory associated with <code>ttbr0_el1</code> related translation table walks</li>
+				    <li>Set to <code>0b01</code> which corresponds to Normal memory, Outer Write-Back Write-Allocate Cacheable</li>
+                </ul>
+				<li>IRGN1, bits [9:8]</li>
+                <ul>
+				    <li>Inner cacheability attribute for memory associated with <code>ttbr0_el1</code> related translation table walks</li>
+				    <li>Set to <code>0b01</code> which corresponds to Normal memory, Inner Write-Back Write-Allocate Cacheable</li>
+                </ul>
+				<li>EPD0, bit [7]</li>
+                <ul>
+			    	<li>Disable translation table walk for translations using <code>ttbr0_el1</code></li>
+			    	<li>Set to <code>0b0</code> since we want to perform translation table walks using <code>ttbr0_el1</code></li>
+                </ul>
+				<li>Bit [6]</li>
+                <ul>
+				    <li>Reserved, RES0</li>
+                </ul>
+				<li>T0SZ, bits [5:0]</li>
+                <ul>
+				    <li>The size offset of the memory region addressed by <code>ttbr0_el1</code>.</li>
+				    <li>Set to <code>16</code>, since we want <code>64 - 16 = 48</code> significant bits for our virtual addresses.</li>
+                </ul>
+			</ul>
+			<p>Assembly for setting up <code>tcr_el1</code>:</p>
+			<pre><code class="language-default">
+    ldr     x0, =0x5b5103510
+    msr     tcr_el1, x0
+    isb
+			</code></pre>
+			<h3>MAIR_EL1</h2>
+			<p>The <code>mair_el1</code> register acts as a table containing memory attributes associated with EL1 address translations. Each entry of <code>mair_el1</code> holds on byte. We will have two types of memory attributes: Device-nGnRnE Memory which covers <code>0x00000000-0x3fffffff</code> (first 1 GB, in QEMU the peripherals etc. lay here) of our 2 GB memory and Inner Write-back non-transient Normal Memory which covers <code>0x40000000-0x7fffffff</code> (all the code will be located here) of the 2GB memory. So we will write the following to <code>mair_el1</code>:</p>
+			<ul>
+				<li>Attr1, bits [15:8]</li>
+				<li>Set to <code>0b11111111</code>, Normal Memory</li>
+				<li>Attr0, bits [7:0]</li>
+				<li>Set to <code>0b00000000</code>, Device-nGnRnE memory</li>
+			</ul>
+			<p>Assembly for setting up <code>mair_el1</code>:</p>
+			<pre><code class="language-default">
+    ldr     x0, =MAIR_EL1_VALUE
+    msr     mair_el1, x0
+    isb
+			</code></pre>
+			<h3>TTBR0_EL1 and TTBR1_EL1</h2>
+			<p>In our simple case <code>ttbr0_el1</code> and <code>ttbr1_el1</code> hold the base address of the same Level 0 translation table. This table in turn holds the addresses to two Level 1 tables. As we discussed earlier entry of a translation table can either point to a memory block or the translation table of the level above. To distinguish between the these two entries the bits [1:0] of the address neet to be set to <code>0b11</code> (table descriptor/entry) or <code>0b01</code> (block entry). Since the Level 0 table holds two addresses corresponding to table descriptors, we will set their bits [1:0] to <code>0b11</code>.</p>
+			<p>The Level 1 table on the other hand holds two block entries, so the bits [1:0] will be set t0 <code>0b01</code>.</p>
+			<p>We will also have to set couple other attributes for these block entries. For the block entry corresponding to the first 1 GB of our 2 GB physical memory:</p>
+			<ul>
+				<li>UXN, bit [54]</li>
+                <ul>
+				    <li>The Unpriveleged Execute-never bit</li>
+				    <li>Set to <code>0b1</code> since the region is not executable</li>
+                </ul>
+				<li>PXN, bit [53]</li>
+                <ul>
+    				<li>The Priveleged Execute-never bit</li>
+			    	<li>Set to <code>0b1</code> since the region is not executable</li>
+                </ul>
+				<li>AF, bit [10]</li>
+                <ul>
+				    <li>The Access flag</li>
+				    <li>Set to <code>0b1</code> since it has not yet been accessed and will be accessed for the first time</li>
+                </ul>
+				<li>SH, bits [9:8]</li>
+                <ul>
+				    <li>Shareability field</li>
+				    <li>Set to <code>0b10</code> which corresponds to Outer Shareable</li>
+                </ul>
+				<li>AP[2:1], bits [7:6]</li>
+                <ul>
+				    <li>Data Access Premission bits</li>
+				    <li>Set to <code>0b00</code> which corresponds to Read/Write from EL1</li>
+                </ul>
+				<li>NS, bit [5]</li>
+                <ul>
+				    <li>Non-secure bit</li>
+				    <li>Set to <code>0b0</code> meaning that the the addresses in the block are in the Secure address map</li>
+                </ul>
+				<li>AttrIndx[2:0], bits [4:2]</li>
+                <ul>
+				    <li><code>mair_el1</code> index field</li>
+				    <li>Set to <code>0b000</code> since Attr0 of <code>mair_el1</code> corresponds to Device-nGnRnE memory.</li>
+                </ul>
+			</ul>
+			<p>To the block entry corresponding to the second 1GB of our 2 GB physical memory we set the following attributes:</p>
+			<ul>
+				<li>UXN, bit [54]</li>
+                <ul>
+				    <li>The Unpriveleged Execute-never bit</li>
+				    <li>Set to <code>0b0</code> since the region is executable</li>
+                </ul>
+				<li>PXN, bit [53]</li>
+                <ul>
+				    <li>The Priveleged Execute-never bit</li>
+				    <li>Set to <code>0b0</code> since the region is executable</li>
+                </ul>
+				<li>AF, bit [10]</li>
+                <ul>
+				    <li>The Access flag</li>
+				    <li>Set to <code>0b1</code> since it has not yet been accessed and will be accessed for the first time</li>
+                </ul>
+				<li>SH, bits [9:8]</li>
+                <ul>
+				    <li>Shareability field</li>
+				    <li>Set to <code>0b11</code> which corresponds to Inner Shareable</li>
+                </ul>
+				<li>AP[2:1], bits [7:6]</li>
+                <ul>
+				    <li>Data Access Premission bits</li>
+				    <li>Set to <code>0b00</code> which corresponds to Read/Write from EL1</li>
+                </ul>
+				<li>NS, bit [5]</li>
+                <ul>
+				    <li>Non-secure bit</li>
+				    <li>Set to <code>0b0</code> meaning that the the addresses in the block are in the Secure address map</li>
+                </ul>
+				<li>AttrIndx[2:0], bits [4:2]</li>
+                <ul>
+				    <li><code>mair_el1</code> index field</li>
+				    <li>Set to <code>0b001</code> since Attr1 of <code>mair_el1</code> corresponds to Normal memory.</li>
+                </ul>
+			</ul>
+            <p><b>Note</b>: We can write to the lowest 10 bits of the entries since they correspond to the offset within the page which is not relevant when gathering information about the translation tables (bits[47:12] of the virtual address).</p>
+			<p>Assembly for setting up <code>ttbr0_el1</code> and <code>ttbr1_el1</code>:</p>
+			<pre><code class="language-default">
+    ldr     x0, =pagetable_level0
+    ldr     x1, =pagetable_level1
+    orr     x2, x1, 0x3
+    str     x2, [x0]
+    ldr     x4, =0x00000000
+    lsr     x5, x4, 30
+    and     x5, x5, 0x1ff
+    lsl     x4, x5, 30
+    ldr     x6, =0x60000000000601
+    orr     x4, x4, x6
+    str     x4, [x1, x5, lsl 3]
+    
+    ldr     x4, =0x40000000
+    lsr     x5, x4, 30
+    and     x5, x5, 0x1ff
+    lsl     x4, x5, 30
+    ldr     x6, =0x00000000000705
+    orr     x4, x4, x6
+    str     x4, [x1, x5, lsl 3]
+    msr     ttbr0_el1, x0
+    msr     ttbr1_el1, x0
+    isb
+			</code></pre>
+			<p>Set up the page tables:</p>
+			<pre><code class="language-default">
+.balign 0x1000
+pagetable_level0:
+    .space 0x1000
+.balign 0x1000
+pagetable_level1:
+    .space 0x100
+			</code></pre>
+			<h3>SCTLR_EL1</h2>
+			<p>All we have left is enabling the MMU. This is done by setting the bit [0] (M) of <code>sctlr_el1</code> to 1. We also set the bit [12] (I) to 1, enabling instrcution caches at EL1.</p>
+			<p>Assembly for enabling the MMU:</p>
+			<pre><code class="language-default">
+    mrs     x0, sctlr_el1
+    orr     x0, x0, 0x1
+    orr     x0, x0, (0x1 &lt;&lt; 12)
+    msr     sctlr_el1, x0
+    is
+			</code></pre>
+			<p>And there we have it! The MMU should be now set up and you should be able to read/write to addresses residing in <code>0x00000000-0x3fffffff</code> and <code>0xffff000000000000-0xffff00003fffffff</code> and read/write/execute addresses located in <code>0x40000000-0x7fffffff</code>  and <code>0xffff000040000000-0xffff00007fffffff</code>.</p>
+			<p>This was my first post related to bare metal programming, so there might be some errors or poorly explained sections. If you find any mistakes or room for improvements feel free to email me! If you found this post helpful please do the same.</p>
+		</article>
+		<footer>
+			<p>In this blog you can find posts about projects I have been working on.</p>
+			<ul>
+				<li><a href="https://github.com/dannasman">GitHub</a></li>
+				<li>dan.nasman@gmail.com</li>
+			</ul>
+		</footer>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+	</body>
+</html>

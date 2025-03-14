@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+		<link href="../assets/css/styles.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+		<title> Writing a simple USB device driver</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="header-title">Dan's Blog</h1>
+			<nav>
+				<ul>
+					<li><a href="../index.html">Posts</a></li>
+					<li><a href="../about.html">About</a></li>
+				</ul>
+			</nav>
+		</header>
+		<article>
+			<h1> Writing a simple USB device driver</h1>
+			<time datetime="2024-01-21">21.01.2024</time>
+			<h3>Introduction</h2>
+			<p>I have spent the past week building my own Linux distribution for Rasbperry Pi 4 following the <a href="https://intestinate.com/pilfs/guide.html">PiLFS guide</a>. After managing to successfully boot the distribution I decided to try writing an USB device driver that detects when my <a href="https://www.wacom.com/en-us/products/pen-tablets/one-by-wacom">Wacom drawing tablet</a> is plugged.</p>
+			<h3>Driver code</h2>
+			<p>The code for the module was taken from <a href="https://sysplay.github.io/books/LinuxDrivers/book/Content/Part11.html">here</a>. In <code>wacom_register.c</code>:</p>
+			<pre><code class="language-c">
+#include &lt;linux/module.h&gt;
+#include &lt;linux/kernel.h&gt;
+#include &lt;linux/usb.h&gt;
+static int wacom_probe(struct usb_interface *interface, const struct usb_device_id *id)
+{
+    printk(KERN_INFO "Wacom drive (%04X:%04X) plugged\n", id-&gt;idVendor, id-&gt;idProduct);
+    return 0;
+}
+static void wacom_disconnect(struct usb_interface *interface)
+{
+    printk(KERN_INFO "Wacom drive removed\n");
+}
+static struct usb_device_id wacom_table[] =
+{
+    { USB_DEVICE(0x056A, 0x037B) },
+    {}
+};
+MODULE_DEVICE_TABLE (usb, wacom_table);
+static struct usb_driver wacom_driver =
+{
+    .name = "wacom_driver",
+    .id_table = wacom_table,
+    .probe = wacom_probe,
+    .disconnect = wacom_disconnect,
+};
+static int __init wacom_init(void)
+{
+    return usb_register(&amp;wacom_driver);
+}
+static void __exit wacom_exit(void)
+{
+    usb_deregister(&amp;wacom_driver);
+}
+module_init(wacom_init);
+module_exit(wacom_exit);
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Dan Näsman");
+			</code></pre>
+			<p>If you are using the code above as a base for your own kernel module, make sure that the values in <code>USB_DEVICE(&lt;vendor_id&gt;, &lt;product_id&gt;)</code> match the values of your device of choice.</p>
+			<h3>Loading the driver</h2>
+			<p>To load the driver after compiling the code run</p>
+			<pre><code class="language-default">
+sudo insmod wacom_register.ko
+			</code></pre>
+			<p>To see if the driver was loaded successfully run</p>
+			<pre><code class="language-default">
+sudo dmesg
+			</code></pre>
+			<p>To unload the driver run</p>
+			<pre><code class="language-default">
+sudo rmmod wacom_register
+			</code></pre>
+			<p>When I first loaded the driver I noticed that the probe function <code>wacom_probe</code> was never called. After some digging I found out that this was due to some other driver(s) already probing the device. In order for our driver to successfully probe the device we need to unload the other drivers which were <code>usb_storage</code>, <code>hid</code> and <code>wacom</code> in my case. So I ran the command</p>
+			<pre><code class="language-default">
+sudo rmmod &lt;driver&gt;
+			</code></pre>
+			<p>for each of these drivers receiving an error</p>
+			<pre><code class="language-default">
+rmmod: ERROR: Module &lt;driver&gt; is builtin.
+			</code></pre>
+			<p>for <code>usb_storage</code> and <code>hid</code>. Turns out that the kernel I compiled when following the PiLFS guide included the modules I was trying to unload. A new compilation of the kernel with some tweaks to the configurations would have needed to be done in order to use <code>rmmod</code> to unload these models.</p>
+			<p>But I was not keen on building a new kernel after I had just managed to get my new distro working. Turns out there is another way. You can blacklist the initialization functions of these drivers in <code>/boot/cmdline.txt</code> by writing</p>
+			<pre><code class="language-default">
+initcall_blacklist=usb_storage_driver_init,hid_init,wacom_driver_init
+			</code></pre>
+			<p>But what if you do not know the name of the init function of the driver? If this is the case you can also write</p>
+			<pre><code class="language-default">
+initcall_debug
+			</code></pre>
+			<p>to <code>/boot/cmdline.txt</code>. This makes the kernel trace initcalls as they are executed. By running <code>sudo dmesg | grep initcall</code> you will get a list of all the initcalls that have been executed and from this list you can search the initcall of the driver of your choice.</p>
+			<p>After editing <code>/boot/cmdline.txt</code> and rebooting the system we now get</p>
+			<pre><code class="language-bash">
+-bash-5.2$ sudo insmod wacom_register.ko 
+-bash-5.2$ sudo dmesg
+[   51.499351] Wacom drive (056A:037B) plugged
+[   51.499481] probe of 1-1.2:1.0 returned 0 after 169 usecs
+-bash-5.2$ 
+			</code></pre>
+			<p>Finally! A very simple driver that detects whether a device is plugged has been written. For any comments/corrections please feel free to email me!</p>
+		</article>
+		<footer>
+			<p>In this blog you can find posts about projects I have been working on.</p>
+			<ul>
+				<li><a href="https://github.com/dannasman">GitHub</a></li>
+				<li>dan.nasman@gmail.com</li>
+			</ul>
+		</footer>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-c.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-bash.min.js"></script>
+	</body>
+</html>

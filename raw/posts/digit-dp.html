@@ -1,0 +1,122 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+		<link href="../assets/css/styles.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+		<title>  Building conditional digit sequence with Digit DP</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="header-title">Dan's Blog</h1>
+			<nav>
+				<ul>
+					<li><a href="../index.html">Posts</a></li>
+					<li><a href="../about.html">About</a></li>
+				</ul>
+			</nav>
+		</header>
+		<article>
+			<h1>  Building conditional digit sequence with Digit DP</h1>
+			<time datetime="2023-09-05">05.09.2023</time>
+			<h3>Introduction</h2>
+			<p><a href="https://codeforces.com/blog/entry/53960">Digit DP</a> is a efficient technique for solving dynamic programming problems which involves building sequences. In this post Digit DP is used to build a digit sequence where no two adjacent digits are the same.</p>
+			<h3>Problem</h2>
+			<p>Our goal is to count the number of numbers between range $\left[a,b\right]$, where $0\leq a\leq b\leq10^{18}$ and no two adjacent digits are the same.</p>
+			<h3>Approach</h2>
+			<p>When using Digit DP for solving a problem we try to form a sequence until it satisfies given conditions. In our approach we start from the least significant digit (the rightmost digit) and move towards the most significant digit one digit a time.</p>
+			<p>Our function takes a number and returns the count of numbers between $0$ and the given number that satisfy our condition. This makes it easy to solve the problem for a given range $[a, b]$ by simply computing $f(b)-f(a-1)$.</p>
+			<p>We begin building our numbers from the least significant digit (the rightmost digit) and check whether the given conditions apply. The digit can not be equal to the neighboring digit. We also have to check that the number we are building does not get bigger than the number given as a parameter.</p>
+			<p>Let $i$ be the current position, $\mathrm{num}$ the the number we are building and $s$ a string representation of the number passed to our function. $\mathrm{num}_i$ has to satisfy two conditions:</p>
+			\[
+			\mathrm{num}_{i}\neq\mathrm{num}_{i-1} \\\\ \mathrm{num}_i\le s_i
+			\]
+			<h3>Implementation</h2>
+			<p> We implement a function $f$ that takes a string representation $s$ of a number. Our DP state is</p>
+			\[
+			dp[n][cond][digits].
+			\]
+			<p> $digits$ contains digits between $0$ and $9$. $n$ keeps track of the digits starting from the most significant number to the least significant number. When building our sequence we need to make sure that the number represented by the sequence is smaller than the number $s$. For this $cond$ is used.</p>
+			<p>The initial states are formed for two conditions ($cond=0$ and $cond=1$):</p>
+			<ol>
+				<li> $dp[n-1][1][d]=\begin{cases}1 &amp;,~d\leq s[n-1] \\\\ 0 &amp;,~d&gt;s[n-1]\end{cases}$</li>
+				<li> $dp[n-1][0][d]=1$</li>
+			</ol>
+			<p>The states for $0\leq i\leq n-2$ are formed following a similar idea:</p>
+			<ol>
+				<li> $dp[i][1][d]=\begin{cases}\sum_{k\neq d}dp[i+1][0][k] &amp;,~d&lt;s[i] \\\\ \sum_{k\neq d}dp[i+1][1][k] &amp;,d~=s[i] \\\\ 0 &amp;,~d&gt;s[i]\end{cases}$</li>
+				<li> $dp[i][0][d]=\sum_{k\neq d}dp[i+1][0][k]$</li>
+			</ol>
+			<p>We can obtain the count of valid numbers with</p>
+			\[
+			c=\sum_{d}dp[0][1][d].
+			\]
+			<p>We can check our current logic with an exampe. Let $s=23$.</p>
+			<p>Initial states for $cond=1$:</p>
+			\[
+			0,~1,~2,~3
+			\]
+			<p>Initial sates for $cond=0$:</p>
+			\[
+			0,~1,~2,~3,~4,~5,~6,~7,~8,~9
+			\]
+			<p>Next states for $cond=1$:</p>
+			\[
+			01,~02,..,~09,~10,~12,~13,..,~19,~20,~21,~23
+			\]
+			<p>Next states for $cond=0$:</p>
+			\[
+			01,~02,..,~09,~10,~12,~13,..,~19,~20,~21,~23,..,~29
+			\]
+			<p>We can notice that one valid sequence is missing: $00$. This is due to our logic not taking into account the numbers that have adjacent "padding" zeros on the left side of valid digits such as $00,~0012,~\mathrm{and}~003104$.</p>
+			<p>This can be fixed by adding a term to our count such that</p>
+			\[
+			c=\sum_{d}dp[0][1][d]+\sum_{i=1}^{n-1}dp[i][0][0].
+			\]
+			<p>And that is it! We obtain the count of numbers in the range $\left[a, b\right]$ where no two adjacent digits are the same by computing</p>
+			\[
+			g(a,b)=\begin{cases}f(b)-f(a-1) &amp;,~a&gt;0 \\\\ f(b) &amp;,~a=0\end{cases}~.
+			\]
+			<p>If you have any comments or corrections to the logic feel free to email me!</p>
+		</article>
+		<footer>
+			<p>In this blog you can find posts about projects I have been working on.</p>
+			<ul>
+				<li><a href="https://github.com/dannasman">GitHub</a></li>
+				<li>dan.nasman@gmail.com</li>
+			</ul>
+		</footer>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+	</body>
+</html>

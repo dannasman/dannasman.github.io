@@ -5,6 +5,7 @@
 
 .header-title {
     text-align: center;
+    font-size: 50px;
 }
 
 body {
@@ -51,6 +52,7 @@ nav ul {
 nav ul li {
     margin-left: 10px;
     margin-right: 10px;
+    font-size: 25px;
 }
 
 footer {
@@ -150,7 +152,7 @@ pre[class*="language-"] {
     color: #fff;
     background-color: #222;
     text-shadow: none;
-    font-size: 15px;
+    font-size: 14px;
     font-family: monospace;
 }
 
@@ -188,7 +190,18 @@ article blockquote a {
 article img {
     display: block;
     margin: 0 auto;
-    width: 400px;
+    width: 700px;
+}
+
+article figure {
+    display: block;
+    margin: 0 auto;
+    width: 700px;
+}
+
+article figcaption {
+    text-align: center;
+    font-style: italic;
 }
 
 article img[class="holopin"] {
@@ -223,6 +236,12 @@ article img[class="holopin"] {
     }
 
     article img {
+        display: block;
+        margin: 0 auto;
+        width: 300px;
+    }
+
+    article figure {
         display: block;
         margin: 0 auto;
         width: 300px;

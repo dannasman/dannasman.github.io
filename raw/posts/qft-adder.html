@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+		<link href="../assets/css/styles.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+		<title> Quantum circuit for addition</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="header-title">Dan's Blog</h1>
+			<nav>
+				<ul>
+					<li><a href="../index.html">Posts</a></li>
+					<li><a href="../about.html">About</a></li>
+				</ul>
+			</nav>
+		</header>
+		<article>
+			<h1> Quantum circuit for addition</h1>
+			<time datetime="2024-06-30">30.06.2024</time>
+			<h2>Introduction</h3>
+			<p>In this post we will be implementing a quantum adder circuit using <a href="https://github.com/dannasman/qelvin">Qelvin</a>. The circuit is presented in this <a href="https://arxiv.org/abs/1411.5949">paper</a> written by L. Ruiz-Perez and J. C. Garcia-Escartin and it takes advantage of the Quantum Fourier Transform (QFT).</p>
+			<h2>Theory</h3>
+			<h3>Quantum Fourier Transform</h2>
+			<p>In a $n$ qubit system, the Quantum Fourier Transform acting on an orthonormal basis state $|j\rangle,~n=1,2,...,n$ can be expressed as</p>
+			\[\begin{equation}
+			j\rangle\mapsto\frac{1}{\sqrt{2^n}}\sum_{k=0}^{2^n-1}e^{i\frac{2\pi kj}{2^n}}|k\rangle,
+		    \end{equation}\]
+			<p>and the corresponding inverse QFT takes form</p>
+            \[\begin{equation}
+			k\rangle\mapsto\frac{1}{\sqrt{2^n}}\sum_{j=0}^{2^n-1}e^{-i\frac{2\pi kj}{2^n}}|j\rangle.
+			\end{equation}\]
+			<h3>QFT adder</h2>
+			<p>Consider integers $0\leq a,b\leq2^n-1$ represented by $n$ qubit states $|a\rangle$ and $|b\rangle$ respectively. The total number of qubits in the adder circuit totals to $2n+1$, $n$ qubits for each state representing a integer and one additional qubit for the carry bit. Thus the whole register the circuit operates on is</p>
+            \[\begin{equation}
+			a_1a_2...a_n\rangle|0\rangle|b_1b_2...b_n\rangle,
+            \end{equation}\]
+			<p>where $a_1a_2...a_n=a_1\cdot2^0+a_2\cdot 2^1+...+a_n\cdot2^n$ and $b_1b_2...b_n=b_1\cdot2^0+b_2\cdot 2^1+...+b_n\cdot2^n$ are the binary representations of $a$ and $b$. Not that the register stores the integers in big-endian format.</p>
+			<p>The next part focuses on register $|a_1a_2...a_n\rangle|0\rangle$. We first apply a QFT to obtain state (no $SWAP$ gates applied)</p>
+			\[\begin{equation}
+			\begin{split}
+			a_1a_2...a_n\rangle|0\rangle\mapsto^{QFT} &amp; \frac{1}{\sqrt{2^{n+1}}}\sum_{k=0}^{2^n}e^{i\frac{2\pi ka}{2^{n+1}}}|k\rangle \newline
+			&amp; = \left(|0\rangle+e^{-i\frac{2\pi a}{2^{n+1}}}|1\rangle\right)\otimes\left(|0\rangle+e^{-i\frac{2\pi a}{2^{n}}}|1\rangle\right)\otimes...\otimes\left(|0\rangle+e^{-i\frac{2\pi a}{2^1}}|1\rangle\right) \newline
+			&amp; = |\phi_{n+1}(a)|\phi_n(a)\rangle...|\phi_1(a)\rangle,
+			\end{split}
+            \end{equation}\]
+			<p>where $\phi_k(a)=\frac{1}{\sqrt{2}}\left(|0\rangle+e^{i\frac{2\pi a}{2^k}}|1\rangle\right)$. Note that</p>
+			\[\begin{equation}
+			e^{i\frac{2\pi a}{2^k}}=e^{i2\pi\frac{a_1\cdot2^0+a_2\cdot2^1+...+a_n\cdot2^{n-1}}{2^k}}=e^{i2\pi\left(a_1\cdot2^{-k}+a_2\cdot2^{-k+1}+..+a_k\cdot2^0\right)}=e^{i2\pi0.a_ka_{k-1}...a_1},
+			\end{equation}\]
+			<p>where $0.a_ka_{k-1}...a_1$ is the binary fraction. This implies that $\phi_k(a)$ contains the lower $k$ binary digits of $a$. Next we define a controlled rotation gate</p>
+		    \[\begin{equation}
+			R_j=\begin{bmatrix}
+			1 &amp; 0 &amp; 0 &amp; 0 \newline
+			0 &amp; 1 &amp; 0 &amp; 0 \newline
+			0 &amp; 0 &amp; 1 &amp; 0 \newline
+			0 &amp; 0 &amp; 0 &amp; e^{i\frac{2\pi}{2^j}}
+			\end{bmatrix}.
+			\end{equation}\]
+			<p>For each $|\phi_k(a)\rangle,~0\lt k\lt n$ we apply $k$ controlled rotation gates where $R_1$ is controlled by $|b_k\rangle$, $R_2$ by $|b_{k-1}\rangle$ and so on. To state $\phi_{n+1}(a)$ we apply $n$ controlled rotation gates such that $R_2$ controlled by $|b_n\rangle$, $R_3$ controlled by $|b_{n-1}\rangle$ and so on.</p>
+			<p>Let us examine how applying these gates affects $|\phi_k(a)\rangle$. Let $R_j^{b_i}$ be a rotation gate controlled by $b_i$. We get</p>
+			\[\begin{equation}
+			\begin{split}
+			R_k^{b_1}...R_2^{b_{k-1}}R_1^{b_k}|\phi_k(a)\rangle &amp; = R_k^{b_1}...R_2^{b_{k-1}}\frac{1}{\sqrt{2}}\left(|0\rangle+e^{i2\pi\left(0.a_ka_{k-1}...a_1+b_k\cdot2^{-1}\right)}|1\rangle\right)\newline
+		    &amp; . \newline
+			&amp; . \newline
+			&amp; . \newline
+			&amp; = \frac{1}{\sqrt{2}}\left(|0\rangle+e^{i2\pi\left(0.a_ka_{k-1}...a_1+b_k\cdot2^{-1}+b_{k-1}\cdot2^{-2}+...+b_1\cdot2^{-k}\right)}|1\rangle\right)\newline
+			&amp; = \frac{1}{\sqrt{2}}\left(|0\rangle+e^{i2\pi\left(0.a_ka_{k-1}...a_1+0.b_kb_{k-1}...b_1\right)}|1\rangle\right)\newline
+			&amp; = \phi_k(a+b).
+			\end{split}
+			\end{equation}\]
+			<p>Now by applying the described procedure to every state in the QFT register we end up with state</p>
+			\[\begin{equation}
+			\phi_{n+1}(a+b)\rangle|\phi_n(a+b)\rangle...\phi_1(a+b)\rangle,
+			\end{equation}\]
+			<p>and by applying the inverse QFT on the register we end up with state $|a+b\rangle$.</p>
+			<h2>Implementation</h3>
+			<p>Say we want to add integers $a=1=10_2$ and $b=3=11_2$ (big-endian notation). We initialize a state $|10\rangle|0\rangle|11\rangle$.</p>
+			<pre><code class="language-python">
+import numpy as np
+from qelvin import QRegister, QCircuit
+# number of qubits representing b
+N_b = 2
+# number of qubits representing a + one qubit representing the carry bit
+N_fft = 3
+N = N_b + N_fft
+psi = QRegister(N, 0b10011) # |a|0|b|=|10|0|11
+circ = QCircuit(psi)
+			</code></pre>
+			<p>Next we perform QFT on $|a\rangle|0\rangle$.</p>
+			<pre><code class="language-python">
+for j in range(N_b, N):
+    for k in range(N_b, j):
+        circ.cp(np.pi/float(2**(j-k)), j, k)
+    circ.h(j)
+print(circ)
+circ.run()
+			</code></pre>
+			<p>Below is the circuit produced by this snippet. <code>H</code> is the Hadamard gate and $R_j$ is represented by <code>P(2.0*pi/2**j)</code>.</p>
+			<pre><code class="language-                                                                          ">
+                                                                           
+q0-------------------------------------------------------------------------
+                                                                           
+                                                                           
+                                                                           
+                                                                           
+q1-------------------------------------------------------------------------
+                                                                           
+                                                                           
+      ---------  ---------             ---------                           
+     |         ||         |           |         |                          
+q2---|    H    ||P(+1.571)|-----------|P(+0.785)|--------------------------
+     |         ||         |           |         |                          
+      ---------  ---------             ---------                           
+                     |      ---------      |      ---------                
+                     |     |         |     |     |         |               
+q3-------------------o-----|    H    |-----|-----|P(+1.571)|---------------
+                           |         |     |     |         |               
+                            ---------      |      ---------                
+                                           |          |      ---------     
+                                           |          |     |         |    
+q4-----------------------------------------o----------o-----|    H    |----
+                                                            |         |    
+                                                             ---------     
+			</code></pre>
+			<p>After this we apply the controlled rotation gates.</p>
+			<pre><code class="language-python">
+for j in range(0, N_b+1):
+    for k in range(0, N_b):
+        theta = 2.0*np.pi*2**(-(k+1+N_b-j+1-N_b))
+        circ.cp(theta, k, N_b+j)
+print(circ)
+circ.run()
+			</code></pre>
+			<p>Below is the circuit produced by this snippet.</p>
+			<pre><code class="language-default">
+q0--------o---------------------o---------------------o--------------------
+          |                     |                     |                    
+          |                     |                     |                    
+          |                     |                     |                    
+          |                     |                     |                    
+q1--------|----------o----------|----------o----------|----------o---------
+          |          |          |          |          |          |         
+          |          |          |          |          |          |         
+      ---------  ---------      |          |          |          |         
+     |         ||         |     |          |          |          |         
+q2---|P(+1.571)||P(+0.785)|-----|----------|----------|----------|---------
+     |         ||         |     |          |          |          |         
+      ---------  ---------      |          |          |          |         
+                            ---------  ---------      |          |         
+                           |         ||         |     |          |         
+q3-------------------------|P(+3.142)||P(+1.571)|-----|----------|---------
+                           |         ||         |     |          |         
+                            ---------  ---------      |          |         
+                                                  ---------  ---------     
+                                                 |         ||         |    
+q4-----------------------------------------------|P(+0.000)||P(+3.142)|----
+                                                 |         ||         |    
+                                                  ---------  ---------     
+			</code></pre>
+			<p>Finally we apply the inverse QFT on state $|\phi(a+b)\rangle$.</p>
+			<pre><code class="language-python">
+for j in reversed(range(N_b, N)):
+    circ.h(j)
+    for k in reversed(range(N_b, j)):
+        circ.cp(-np.pi/float(2**(j-k)), j, k)
+print(circ)
+circ.run()
+			</code></pre>
+			<p>Below is the circuit produced by this snippet.</p>
+			<pre><code class="language-default">
+                                                                           
+q0-------------------------------------------------------------------------
+                                                                           
+                                                                           
+                                                                           
+                                                                           
+q1-------------------------------------------------------------------------
+                                                                           
+                                                                           
+                            ---------             ---------  ---------     
+                           |         |           |         ||         |    
+q2-------------------------|P(-0.785)|-----------|P(-1.571)||    H    |----
+                           |         |           |         ||         |    
+                            ---------             ---------  ---------     
+                 ---------      |      ---------      |                    
+                |         |     |     |         |     |                    
+q3--------------|P(-1.571)|-----|-----|    H    |-----o--------------------
+                |         |     |     |         |                          
+                 ---------      |      ---------                           
+      ---------      |          |                                          
+     |         |     |          |                                          
+q4---|    H    |-----o----------o------------------------------------------
+     |         |                                                           
+      ---------                                                            
+			</code></pre>
+			<p>Let us now print the final state.</p>
+			<pre><code class="language-python">
+psi_out = circ.state()
+print("Final state:")
+print(psi_out)
+(real, imag) = psi_out[0b00111]
+prob = real*real + imag*imag
+print(f"Probability for state |a+b|b|=|001|11|: {prob}")
+			</code></pre>
+			<p>Printed state is presented below.</p>
+			<pre><code class="language-default">
+Final state:
+[ 0.000+0.000*j  0.000+0.000*j  0.000+0.000*j  -0.000+0.000*j  0.000+0.000*j 
+ 0.000+0.000*j  0.000+0.000*j  1.000-0.000*j  0.000+0.000*j  0.000+0.000*j 
+ 0.000+0.000*j  -0.000+0.000*j  0.000+0.000*j  0.000+0.000*j  0.000+0.000*j 
+ 0.000+0.000*j  0.000+0.000*j  0.000+0.000*j  0.000+0.000*j  -0.000+0.000*j 
+ 0.000+0.000*j  0.000+0.000*j  0.000+0.000*j  0.000+0.000*j  0.000+0.000*j 
+ 0.000+0.000*j  0.000+0.000*j  -0.000+0.000*j  0.000+0.000*j  0.000+0.000*j 
+ 0.000+0.000*j  0.000+0.000*j ]
+Probability for state |a+b|b|=|001|11|: 1.0000000000000004
+			</code></pre>
+			<p>And there we have it! We have succesfully computed the sum $a+b=1+3=4=001_2$.</p>
+		</article>
+		<footer>
+			<p>In this blog you can find posts about projects I have been working on.</p>
+			<ul>
+				<li><a href="https://github.com/dannasman">GitHub</a></li>
+				<li>dan.nasman@gmail.com</li>
+			</ul>
+		</footer>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-python.min.js"></script>
+	</body>
+</html>

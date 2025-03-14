@@ -1,0 +1,71 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+		<link href="../assets/css/styles.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+		<title> Hacktoberfest 2023 update</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="header-title">Dan's Blog</h1>
+			<nav>
+				<ul>
+					<li><a href="../index.html">Posts</a></li>
+					<li><a href="../about.html">About</a></li>
+				</ul>
+			</nav>
+		</header>
+		<article>
+			<h1> Hacktoberfest 2023 update</h1>
+			<time datetime="2023-10-27">27.10.2023</time>
+			<p>It is that time of the year again when I go through my Hacktoberfest pull requests, all of which were made to <a href="https://github.com/RustPython/RustPython">RustPython</a>. </p>
+            <blockquote>
+                <p>RustPython is a Python interpreter written in Rust. RustPython can be embedded into Rust programs to use Python as a scripting language for your application, or it can be compiled to WebAssembly in order to run Python in the browser. RustPython is free and open-source under the MIT license.</p>
+                <p>– <a href="https://rustpython.github.io/">RustPython website</a></p>
+            </blockquote>
+			<p>The changes made to the source code were quite minimal. <code>PyObject_GetAIter</code>, <code>PyObject_Type</code>, and <code>PyObject_TypeCheck</code> needed to be implemented for the <a href="https://docs.python.org/3/c-api/object.html">Object protocol</a>. Logic for the implementations already existed in some built-in functions of the <code>PyObject</code> class. All I needed to do was move the logic to the new protocol functions and make the built-in functions call them. The changes make it easier to retrieve information about an object. For example, if you want to get an async iterator for the object, you do not need to write multiple lines of code anymore. Just calling the protocol function will do the trick.</p>
+			<p>Due to a large amount schoolwork I had this month the contributions were a bit smaller compared to <a href="./hacktoberfest-22.html">last year</a>. Regardless of this I enjoyed the challenge a lot. Contributing to RustPython is a fun way to learn new things about interpreters, Python, C, and, Rust (all at the same time!). Looking at the CPython implementation is a great way to begin the process of writing an implementation to RustPython. This way you also learn a lot about C on top of Python and Rust. I would recommend participating in Hacktoberfest for anyone who is interested in improving their coding skills and giving something back to the developer community.</p>
+			<p><a href="https://holopin.io/@dannasman"><img src="https://holopin.me/dannasman"></img></a></p>
+		</article>
+		<footer>
+			<p>In this blog you can find posts about projects I have been working on.</p>
+			<ul>
+				<li><a href="https://github.com/dannasman">GitHub</a></li>
+				<li>dan.nasman@gmail.com</li>
+			</ul>
+		</footer>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+	</body>
+</html>
