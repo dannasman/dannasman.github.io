@@ -1,0 +1,381 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+		<link href="../assets/css/styles.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+		<title> Numera</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="header-title">Dan's Blog</h1>
+			<nav>
+				<ul>
+					<li><a href="../index.html">Posts</a></li>
+					<li><a href="../about.html">About</a></li>
+				</ul>
+			</nav>
+		</header>
+		<article>
+			<h1> Numera</h1>
+			<time datetime="2025-01-11">11.01.2025</time>
+			<p>For a while now, I have been incrementally (and slowly) building a compiler for my language <a href="https://github.com/dannasman/numera">numera</a>, which is heavily based on the examples of the <a href="https://en.wikipedia.org/wiki/Compilers:_Principles,_Techniques,_and_Tools">"dragon book"</a> written by Alfred V. Aho, Monica S. Lam, Ravi Sethi, and Jeffrey D. Ullman. While the project is still in progress, I have managed to enter a stage where the compiler produces <code>x86_64</code> assembly language that executes correctly. This post will go over some details and design choices made during the development.</p>
+			<h2>Grammar</h3>
+			<p>The grammar of the language is shown above.</p>
+			<pre><code class="language-default">
+program     -&gt;      functions
+functions   -&gt;      functions function | ε
+function    -&gt;      define type id ( params) block
+block       -&gt;      { decls stmts }
+decls       -&gt;      decls decl | ε
+decl        -&gt;      type id;
+stmts       -&gt;      stmts stmt | ε
+stmt        -&gt;      type id = bool;
+            |       type id [ num ];
+            |       loc = bool;
+            |       if ( bool ) stmt
+            |       if ( bool ) stmt else stmt
+            |       while ( bool ) stmt
+            |       return expr;
+            |       break;
+            |       block
+params      |       ε | type id, params
+args        |       ε | id, args
+loc         -&gt;      loc [ bool ] | id | id ( args )
+bool        -&gt;      bool || join | join
+join        -&gt;      join &amp;&amp; equality | equality
+equality    -&gt;      equality == rel | equality != rel | rel
+rel         -&gt;      expr &lt; expr | expr &lt;= expr | expr &gt;= expr 
+                    expr &gt; expr | expr
+expr        -&gt;      expr + term | expr - term | term
+term        -&gt;      term * unary | term / unary | unary
+unary       -&gt;      ! unary | - unary | factor
+factor      -&gt;      ( bool ) | loc | num | real | true | false
+			</code></pre>
+			<p>It is a procedual language consisting of functions that call each other. All variables are defined within a function. This means that global variables are not permitted (at least for now). This decision was made to simplify the memory management and run-time environment. When all the variables are local they are associated with only one procedure, simplifying the run-time stack management. Another decision made in an effort to simplify the run-time stack management was to prohibit nested functions.</p>
+			<p>All the variables of a function need to be declared before assigning values to them, meaning that the grammar does not allow e.g. <code>int a = 1</code>. All declarations also need to be declared before the statements associated with the function. This approach makes it easier to allocate memory for the variables on the run-time stack.</p>
+			<h2>Types</h3>
+			<p>The primitive types of the language are:</p>
+			<ul>
+				<li> <code>int</code> (64 bits)</li>
+				<li> <code>float</code> (64 bits)</li>
+				<li> <code>bool</code> (64 bits, accepts <code>true</code> or <code>false</code>)</li>
+			</ul>
+			<p>In order to simplify the <code>x86_64</code> code generation the size of all types was set to 64 bits.</p>
+			<p>In addition to the primitive types the following types are also supported:</p>
+			<ul>
+				<li> <code>[]int</code></li>
+				<li> <code>[]float</code></li>
+				<li> <code>[]bool</code></li>
+			</ul>
+			<h2>Runtime environment</h3>
+			<p>The runtime environment of the compiler uses static allocation, meaning that all the (local) variables of the function are allocated space on the run-time stack. All the information needed to execute the function is stored in an activation record. An activation record holds the memory addresses of all the local variables and temporary values in a case there is any. If another function is called within the function, the parameters of the callee function are stored in the activation record of the caller. Activation records of a program recide on the run-time stack. The activation record of the function being executed resides on top of the stack. Once the execution of the function is complete, its activation record is popped from the stack. The activation record of the caller now resides on top of the stack and control is returned to the caller. Below is an illustration of this process where currently executing  function <code>g(x, y)</code> is called by function <code>f()</code>.</p>
+			<pre><code class="language-default">
+-----------
+f          
+integer a  
+integer b  
+integer x  
+integer y  
+-----------    &lt;- pointer to the beginning of the activation
+g                 record of g stored in register R
+integer c  
+integer d  
+# We can access the values of the parameters using register R.
+# The value of x is stored in &lt;address stored in R&gt; + 16 and
+# the value of y is stored in &lt;address stored in R&gt; + 8.
+# The values of c and d are stored in
+# &lt;address stored in R&gt; - 8 and &lt;address stored in R&gt; - 16
+# respectively. Note that stack grows towards lower addresses.
+-----------    &lt;- pointer to the end of activation record of
+                   g stored in the stack pointer SP
+			</code></pre>
+			<p>After we are done with function <code>g(x, y)</code> we increase the address stored in <code>SP</code> by 16 bytes (it now points to the end of activation record of <code>f()</code> which is in control of the execution after done calling <code>g(x, y)</code>).</p>
+			<h2>Code generator</h3>
+			<p>The target chosen for the compiler was <code>x86_64</code>. The compiler uses the following registers:</p>
+			<ul>
+				<li> <code>%rax</code>, reserved for handling return values (also used as scratch register)</li>
+				<li> <code>%rbp</code>, reserved, points to the beginning of the activation record of the executing function</li>
+				<li> <code>%rsp</code>, reserved, points to the top of the stack (end of the activation record of the execution function)</li>
+				<li> <code>%rcx</code>, reserved, used as a scratch register for arithmetic and logical operations</li>
+				<li> <code>%rdx</code>, reserved, used as a scratch register for arithmetic and logical operations</li>
+				<li> <code>%rsi</code>, used freely</li>
+				<li> <code>%rdi</code>, used freely</li>
+				<li> <code>%r8</code>, used freely</li>
+				<li> <code>%r9</code>, used freely</li>
+				<li> <code>%r10</code>, used freely</li>
+				<li> <code>%r11</code>, used freely</li>
+				<li> <code>%r12</code>, used freely</li>
+				<li> <code>%xmm0</code>, reserved for handling return values (also used as scratch register)</li>
+				<li> <code>%xmm1</code>, reserved, used as a scratch register for arithmetic and relational operations</li>
+				<li> <code>%xmm2</code>, reserved, used as a scratch register for arithmetic and relational operations</li>
+				<li> <code>%xmm3</code>, used freely</li>
+				<li> <code>%xmm4</code>, used freely</li>
+				<li> <code>%xmm5</code>, used freely</li>
+				<li> <code>%xmm6</code>, used freely</li>
+				<li> <code>%xmm7</code>, used freely</li>
+				<li> <code>%xmm8</code>, used freely</li>
+				<li> <code>%xmm9</code>, used freely</li>
+				<li> <code>%xmm10</code>, used freely</li>
+				<li> <code>%xmm11</code>, used freely</li>
+				<li> <code>%xmm12</code>, used freely</li>
+				<li> <code>%xmm13</code>, used freely</li>
+				<li> <code>%xmm14</code>, used freely</li>
+				<li> <code>%xmm15</code>, used freely</li>
+			</ul>
+			<p>An example program and generated x86_64 assembly is displayed below.</p>
+			<pre><code class="language-default">
+// program
+define int fib(int i) {
+    if (i == 0) return 1;
+    if (i == 1) return 1;
+    return fib(i-1)+fib(i-2);
+}
+define int main() {
+    int[10] n; int i;
+    i = 0;
+    while (i &lt; 10) {
+        n[i] = fib(i);
+        i = i + 1;
+    }
+    return 0;
+}
+			</code></pre>
+			<pre><code class="language-default">
+// generated code
+.global main
+fib:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $64, %rsp
+L1:
+	movq 16(%rbp), %rdx
+	movq $0, %rcx
+	cmpq %rcx, %rdx
+	sete %al
+	movzx %al, %rcx
+	movq %rcx, -8(%rbp)
+	movq -8(%rbp), %r12
+	movq %r12, %rcx
+	test %rcx, %rcx
+	je L3
+L4:
+	movq $1, %rax
+	jmp L2
+L3:
+	movq 16(%rbp), %rdx
+	movq $1, %rcx
+	cmpq %rcx, %rdx
+	sete %al
+	movzx %al, %rcx
+	movq %rcx, -16(%rbp)
+	movq -16(%rbp), %r11
+	movq %r11, %rcx
+	test %rcx, %rcx
+	je L5
+L6:
+	movq $1, %rax
+	jmp L2
+L5:
+	movq 16(%rbp), %rcx
+	movq $1, %rdx
+	subq %rdx, %rcx
+	movq %rcx, -24(%rbp)
+	movq -24(%rbp), %r10
+	pushq %r10
+	call fib
+	movq %rax, -32(%rbp)
+	addq $8, %rsp
+	movq 16(%rbp), %rcx
+	movq $2, %rdx
+	subq %rdx, %rcx
+	movq %rcx, -40(%rbp)
+	movq -40(%rbp), %r12
+	pushq %r12
+	call fib
+	movq %rax, -48(%rbp)
+	addq $8, %rsp
+	movq -32(%rbp), %r12
+	movq -48(%rbp), %r11
+	movq %r12, %rcx
+	movq %r11, %rdx
+	addq %rdx, %rcx
+	movq %rcx, -56(%rbp)
+	movq -56(%rbp), %rax
+	jmp L2
+L2:
+	addq $64, %rsp
+	popq %rbp
+	ret
+main:
+	pushq %rbp
+	movq %rsp, %rbp
+	subq $112, %rsp
+L7:
+	movq $0, %rcx
+	movq %rcx, -88(%rbp)
+L9:
+	movq -88(%rbp), %rdx
+	movq $10, %rcx
+	cmpq %rcx, %rdx
+	setl %al
+	movzx %al, %rcx
+	movq %rcx, -96(%rbp)
+	movq -96(%rbp), %r12
+	movq %r12, %rcx
+	test %rcx, %rcx
+	je L10
+L11:
+	movq -88(%rbp), %rcx
+	movq $8, %rdx
+	imulq %rcx, %rdx
+	movq %rdx, -104(%rbp)
+	pushq -88(%rbp)
+	call fib
+	movq %rax, -112(%rbp)
+	addq $8, %rsp
+	movq -112(%rbp), %r12
+	movq -104(%rbp), %r11
+	movq %r12, %rcx
+	movq %rcx, -80(%rbp, %r11)
+L12:
+	movq -88(%rbp), %rcx
+	movq $1, %rdx
+	addq %rdx, %rcx
+	movq %rcx, -88(%rbp)
+	jmp L9
+L10:
+	movq $0, %rax
+	jmp L8
+L8:
+	addq $112, %rsp
+	popq %rbp
+	ret
+			</code></pre>
+			<p>From the example it can be seen that no optimizations have yet been implemented in the code generator. The example displays low hanging fruits such as</p>
+			<pre><code class="language-default">
+//...
+	jmp L2
+L2:
+//...
+			</code></pre>
+			<p>and</p>
+			<pre><code class="language-default">
+//...
+	movq %rcx, -96(%rbp)
+	movq -96(%rbp), %r12
+	movq %r12, %rcx
+//...
+			</code></pre>
+			<p>There compiler does not yet have any I/O implemented, so I have been using <code>gdb</code> to inspect the results of the compiled program. The results of the example program can be inspected with <code>gdb</code> by setting a breakpoint to L8. Once the breakpoint is reach, use <code>info register rbp</code> to obtain the address correspointing to the base of the activation record of <code>main()</code>, <code>0x7fffffffdcc0</code> in my case for example. By executing the command <code>x/20x (&lt;value stored in %rbp&gt; - 80)</code> we obtain all the values stored in <code>int[10] n</code>:</p>
+			<pre><code class="language-default">
+(gdb) x/20x (0x7fffffffdcc0 - 80)
+0x7fffffffdc70:	0x00000001	0x00000000	0x00000001	0x00000000
+0x7fffffffdc80:	0x00000002	0x00000000	0x00000003	0x00000000
+0x7fffffffdc90:	0x00000005	0x00000000	0x00000008	0x00000000
+0x7fffffffdca0:	0x0000000d	0x00000000	0x00000015	0x00000000
+0x7fffffffdcb0:	0x00000022	0x00000000	0x00000037	0x00000000
+			</code></pre>
+			<h2>Intermediate representation</h3>
+			<p>The compiler also allows inspection of three-address code representation of the program. Three-address code of the program displayed in the previous chapter is shown below.</p>
+			<pre><code class="language-default">
+fib:
+	begin 0
+L1:
+	t1 = i == 0
+	iffalse t1 goto L3
+L4:
+	ret 1
+	goto L2
+L3:
+	t2 = i == 1
+	iffalse t2 goto L5
+L6:
+	ret 1
+	goto L2
+L5:
+	t3 = i - 1
+	param t3
+	t4 = call fib 1
+	t5 = i - 2
+	param t5
+	t6 = call fib 1
+	t7 = t4 + t6
+	ret t7
+	goto L2
+L2:
+	end
+main:
+	begin 88
+L7:
+	i = 0
+L9:
+	t8 = i &lt; 10
+	iffalse t8 goto L10
+L11:
+	t9 = i * 8
+	param i
+	t10 = call fib 1
+	n [t9] = t10
+L12:
+	i = i + 1
+	goto L9
+L10:
+	ret 0
+	goto L8
+L8:
+	end
+			</code></pre>
+			<h2>Next steps</h3>
+			<p>The planning to continue the incremental development of the compiler by implementing the following steps:</p>
+			<ul>
+				<li> Peephole optimization</li>
+				<li> Testing and profiling environment</li>
+				<li> I/O</li>
+				<li> Switch statements</li>
+				<li> More convenient alternatives for array initialization</li>
+				<li> Size of boolean to 8 bits</li>
+				<li> 32-bit types (current int -&gt; long, current float -&gt; double)</li>
+			</ul>
+		</article>
+		<footer>
+			<p>In this blog you can find posts about projects I have been working on.</p>
+			<ul>
+				<li><a href="https://github.com/dannasman">GitHub</a></li>
+				<li>dan.nasman@gmail.com</li>
+			</ul>
+		</footer>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+	</body>
+</html>

@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+		<link href="../assets/css/styles.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+		<title>  Calculating potential gradient with Enzyme</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="header-title">Dan's Blog</h1>
+			<nav>
+				<ul>
+					<li><a href="../index.html">Posts</a></li>
+					<li><a href="../about.html">About</a></li>
+				</ul>
+			</nav>
+		</header>
+		<article>
+			<h1>  Calculating potential gradient with Enzyme</h1>
+			<time datetime="2023-06-10">10.06.2023</time>
+			<p>In this post we will be playing around with **Enzyme** by calculating the potential gradient.</p>
+            <blockquote>
+                <p>The Enzyme project is a tool that takes arbitrary existing code as LLVM IR and computes the derivative (and gradient) of that function.</p>
+                <p>– <a href="https://enzyme.mit.edu/">The Enzyme project website</a><p>
+            </blockquote>
+			<p>This post will not get in the details of installing and setting up Enzyme. Detailed installation guide can be found on the Enzyme project website.</p>
+			<p>The function which we will be focusing on is</p>
+			\[
+			E=-\nabla\mathbf\phi,
+			\]
+			<p>where $E$ is the electric field and $\phi$ is the potential. Our system consists of an area $5\times5~\mathrm{nm}^2$ with a single point charge $q$ in it at $(0~\mathrm{nm}, 0~\mathrm{nm})$. The potential at $(x, y)$ is</p>
+			\[
+			\phi(x, y)=\frac{1}{4\pi\varepsilon_0}\frac{q}{\sqrt{x^2+y^2}},
+			\]
+			<p>where $\varepsilon_0$ is the vacuum permittivity. By doing some simple differentiation we get the equation for electric field</p>
+			\[
+			E=\frac{1}{4\pi\varepsilon_0}\frac{q}{x^2+y^2}\Rightarrow\mathbf{E}=\frac{E}{\sqrt{x^2+y^2}}\begin{bmatrix}x\\ y\end{bmatrix}.
+			\]
+			<p>Let us write the function in <code>potential_gradient.cc</code>:</p>
+			<pre><code class="language-cpp">
+#include &lt;iostream&gt;
+#include &lt;math.h&gt;
+constexpr double k = 12.5663706144; //4*pi
+constexpr double q = 0.160217663; //elementary charge
+double potential(double r, double q) {
+    return q / (k*r);
+}
+			</code></pre>
+			<p>Our function calculates $\varepsilon_0E$ at distance <code>r</code> from the point charge <code>q</code>. Next we write our own function for the derivative called <code>dpotential</code>. In <code>potential_gradient.cc</code>:</p>
+			<pre><code class="language-cpp">
+//...
+double dpotential(double r, double q) {
+    return - q / (k*r*r);
+}
+			</code></pre>
+			<p>Next we will whip out function <code>__enzyme_autodiff</code> which invokes Enzyme. We will pass the function <code>potential</code> and values <code>r</code> and <code>q</code> as arguments to <code>__enzyme_autodiff</code>. In <code>potential_gradient.cc</code>:</p>
+			<pre><code class="language-cpp">
+//...
+constexpr double k = 12.5663706144; //4*pi
+extern double __enzyme_autodiff(void*, double, double);
+//...
+double dpotential_ad(double r, double q) {
+    return __enzyme_autodiff((void*) potential, r, q);
+}
+int main() {
+    constexpr int ny = 5;
+    constexpr int nx = 5;
+    for(int y = 0; y &lt; ny; ++y) {
+        for(int x = 0; x &lt; nx; ++x) {
+            double r = sqrt(x*x+y*y);
+            double efield = -dpotential(r, 1.0);
+            double efield_ad = -dpotential_ad(r, 1.0);
+            std::cout &lt;&lt; "efield  at (" &lt;&lt; x &lt;&lt; ", " &lt;&lt; y &lt;&lt; "): " &lt;&lt; efield
+                &lt;&lt; " efield_ad at (" &lt;&lt; x &lt;&lt; ", " &lt;&lt; y &lt;&lt;"): " &lt;&lt; efield_ad
+                &lt;&lt; "\n";
+        }
+    }
+}
+			</code></pre>
+			<p>From the code above Enzyme recognizes that the function differentiated is <code>potential</code> and that <code>r</code> is the variable for differentiation. We also calculate the potential in some positions on our $5\times5~\mathrm{nm}^2$ area.</p>
+			<p>Let us look at the generated (with flags <code>-ffast-math</code>, <code>-fno-vectorize</code>, <code>-fno-slp-vectorize</code>, <code>-fno-unroll-loops</code>) LLVM IR of <code>dpotential</code> and <code>dpotential_ad</code> in <code>output.ll</code>:</p>
+			<pre><code class="language-llvm">
+; ...
+; dpotential
+; Function Attrs: nofree norecurse nosync nounwind readnone uwtable willreturn mustprogress
+define dso_local noundef double @_Z10dpotentialdd(double noundef %0, double noundef %1) local_unnamed_addr #3 {
+  %3 = fneg fast double %1
+  %4 = fmul fast double %0, %0
+  %5 = fmul fast double %4, 0x402921FB544486E0
+  %6 = fdiv fast double %3, %5
+  ret double %6
+}
+; dpotential_ad
+; Function Attrs: norecurse nounwind readnone uwtable willreturn mustprogress
+define dso_local noundef double @_Z13dpotential_addd(double noundef %0, double noundef %1) local_unnamed_addr #4 {
+  %3 = fneg fast double %1
+  %4 = fmul fast double %0, %0
+  %5 = fmul fast double %4, 0x402921FB544486E0
+  %m0diffe.i = fdiv fast double %3, %5
+  ret double %m0diffe.i
+}
+; ...
+			</code></pre>
+			<p>As we can see both functions are almost identical. We can safely say that in our case using Enzyme was a bit of an overkill. In the case of our function being more complex Enzyme would help with the performance by differentiating the function on a low level. Example use cases would be for example in physics simulations and ML models using gradient descent.</p>
+		</article>
+		<footer>
+			<p>In this blog you can find posts about projects I have been working on.</p>
+			<ul>
+				<li><a href="https://github.com/dannasman">GitHub</a></li>
+				<li>dan.nasman@gmail.com</li>
+			</ul>
+		</footer>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-c.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-cpp.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-llvm.min.js"></script>
+	</body>
+</html>

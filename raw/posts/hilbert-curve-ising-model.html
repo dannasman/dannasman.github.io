@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+		<link href="../assets/css/styles.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+		<title>  Speeding up the 2D Ising model simulation with Hilbert curve traversal</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="header-title">Dan's Blog</h1>
+			<nav>
+				<ul>
+					<li><a href="../index.html">Posts</a></li>
+					<li><a href="../about.html">About</a></li>
+				</ul>
+			</nav>
+		</header>
+		<article>
+			<h1>  Speeding up the 2D Ising model simulation with Hilbert curve traversal</h1>
+			<time datetime="2023-05-13">13.05.2023</time>
+			<h2>Introduction</h3>
+			<p>In this post we will be trying to optimize the 2D Ising model introduced in <a href="{% post_url 2023-02-04-metropolis-hastings-algorithm %}">one of my previous posts</a>. Instead of choosing a random grid position on every single Monte Carlo step, we will calculate the grid position from distance traversed along the the Hilbert curve. At these methods are compared.</p>
+			<h2>Hilbert curve</h3>
+			<p>Introduced in 1891 by David Hilbert, the Hilbert curve of order $n$ is a curve that fills every position of a $2^n\times 2^n$ grid once. The curve can be traversed by drawing "U" shapes on the grid. A "U" shape is a set of three steps taken in clockwise (ie. step up, step right, step down) or counterclockwise (ie. step down, step right, step up) direction. For example, the traversal of the 2 order Hilbert curve is done with following rules:</p>
+			<ol>
+				<li> Draw a "U" that goes up and has a counterclockwise rotation.</li>
+				<li> Draw a step up.</li>
+				<li> Draw a "U" that goes to the right and has a clockwise rotation.</li>
+				<li> Draw a step to the right.</li>
+				<li> Draw a "U" that goes to the right and has a clockwise rotation.</li>
+				<li> Draw a step down.</li>
+				<li> Draw a "U" that goes down and has a counterclockwise rotation.</li>
+			</ol>
+            <figure>
+			    <img src="../assets/img/hilbert_curve.png"></img>
+                <figcaption>Order 5 Hibert curve</figcaption>
+            </figure>
+			<p>For more detailed explanation of Hilbert curves I recommend you to read chapter 16 in <a href="https://www.amazon.com/Hackers-Delight-2nd-Henry-Warren/dp/0321842685">Hacker's Delight 2nd Edition</a>. The method used in this post for calculating positions was taken from the book.</p>
+			<h2>Implementation</h3>
+			<p>From the distance $s$ (number of steps taken) traversed along the grid the current $(x, y)$ coordinates can be determined. For the Ising Model simulation a parallel prefix algorithm was chosen as it is efficient for calculating positions for Hilbert curves with large order numbers. In <code>grid.rs</code>:</p>
+			<pre><code class="language-rust">
+use rand::prelude::*;
+use std::fs::File;
+use std::io::{Error, Write};
+#[derive(Debug, Clone)]
+pub struct SpinGrid {
+    dim_x: usize,
+    dim_y: usize,
+    order: Option&lt;usize&gt;,
+    pub grid: Vec&lt;Vec&lt;i32&gt;&gt;, //2D spin grid
+}
+impl SpinGrid {
+//...
+    pub fn new_hcurve(order: usize) -&gt; Self {
+        let dim = 1 &lt;&lt; order;
+        SpinGrid {
+            dim_x: dim,
+            dim_y: dim,
+            order: Some(order),
+            grid: vec![vec![1; dim]; dim],
+        }
+    }
+//...
+    pub fn calculate_configurations_hcurve(
+        &amp;mut self,
+        inter_strength: f64,
+        temperature: f64,
+    ) -&gt; Result&lt;(), &amp;'static str&gt; {
+        let mut rng = rand::thread_rng();
+        //parallel prefix method is used to get (x, y) from Hilbert curve distance s
+        if let Some(n) = self.order {
+            let max_length = (1 &lt;&lt; n) * (1 &lt;&lt; n);
+            for i in 0..max_length {
+                let mut s = i | (0x55555555 &lt;&lt; (2 * n));
+                let sr = (s &gt;&gt; 1) &amp; 0x55555555;
+                let mut cs = ((s &amp; 0x55555555) + sr) ^ 0x55555555;
+                cs = cs ^ (cs &gt;&gt; 2);
+                cs = cs ^ (cs &gt;&gt; 4);
+                cs = cs ^ (cs &gt;&gt; 8);
+                cs = cs ^ (cs &gt;&gt; 16);
+                let swap = cs &amp; 0x55555555;
+                let comp = (cs &gt;&gt; 1) &amp; 0x55555555;
+                let mut t = (s &amp; swap) ^ comp;
+                s = s ^ sr ^ t ^ (t &lt;&lt; 1);
+                s &amp;= (1 &lt;&lt; (2 * n)) - 1;
+                t = (s ^ (s &gt;&gt; 1)) &amp; 0x22222222;
+                s = s ^ t ^ (t &lt;&lt; 1);
+                t = (s ^ (s &gt;&gt; 2)) &amp; 0x0C0C0C0C;
+                s = s ^ t ^ (t &lt;&lt; 2);
+                t = (s ^ (s &gt;&gt; 4)) &amp; 0x00F000F0;
+                s = s ^ t ^ (t &lt;&lt; 4);
+                t = (s ^ (s &gt;&gt; 8)) &amp; 0x0000FF00;
+                s = s ^ t ^ (t &lt;&lt; 8);
+                let x = s &gt;&gt; 16;
+                let y = s &amp; 0xFFFF;
+                let sigma_xy = self.grid[x][y] as f64;
+                let mut sum = 0;
+                if x &lt; self.dim_x - 1 {
+                    sum += self.grid[x + 1][y];
+                }
+                if x &gt; 0 {
+                    sum += self.grid[x - 1][y];
+                }
+                if y &lt; self.dim_y - 1 {
+                    sum += self.grid[x][y + 1];
+                }
+                if y &gt; 0 {
+                    sum += self.grid[x][y - 1];
+                }
+                let s = sum as f64;
+                let energy = 2.0 * inter_strength * sigma_xy * s;
+                let rn: f64 = rng.gen();
+                if energy &lt; 0.0 || rn &lt; (-energy / temperature).exp() {
+                    self.grid[x][y] = -self.grid[x][y];
+                }
+            }
+            Ok(())
+        } else {
+            Err("to calculate configuration with Hilbert curve use SpinGrid::new_hcurve(order) when creating the grid")
+        }
+    }
+/...
+}
+			</code></pre>
+			<p>Let us now compare the computation times and 2D images of spin configurations of the two methods.</p>
+            <figure>
+			    <img src="../assets/img/benchmark.png"></img>
+                <figcaption>Computation times for the methods on $2^n\times 2^n$ grids with $n=1, 2, ..., 14$</figcaption>
+            </figure>
+			<p>As we can see from the benchmarks above the computation time for the random position method increases significantly more compared to the method that uses Hilbert curve as the grid size increases. The Hilbert curve method is over 10x faster for the $16384\times16384$ grid.</p>
+            <figure>
+			    <img src="../assets/img/2d_ising_random.png"></img>
+                <figcaption>2D image of spin configuration for random position method on a $128\times128$ grid with $T=2.269$ K, $J=1.0$ and $1000$ Monte Carlo steps.</figcaption>
+            </figure>
+            <figure>
+			    <img src="../assets/img/2d_ising_hcurve.png"></img>
+                <figcaption>2D image of spin configuration for Hilbert curve method on a $128\times128$ grid with $T=2.269$ K, $J=1.0$ and $1000$ Monte Carlo steps.</figcaption>
+            </figure>
+			<p>As we can see from the 2D images the configurations resemble each other. There is no signs of the Hilbert curve pattern in the 2D image. This is partly due to the amount of Monte Carlo steps. As the amount of steps increases the influence of randomness provided by the Boltzmann distribution increases and the images start to look alike regardless of the method.</p>
+			<h2>Conclusion</h3>
+			<p>In this post we have managed to speed up our 2D Ising model simulation considerably. The images provided by the Hilbert curve method resemble the ones obtained with the random position method and no traces of the curve pattern were seen on the 2D images.</p>
+		</article>
+		<footer>
+			<p>In this blog you can find posts about projects I have been working on.</p>
+			<ul>
+				<li><a href="https://github.com/dannasman">GitHub</a></li>
+				<li>dan.nasman@gmail.com</li>
+			</ul>
+		</footer>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+	</body>
+</html>

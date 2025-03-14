@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+		<link href="../assets/css/styles.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+		<title>  Implementing a tool for creating point-and-figure (P&F) charts using Python</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="header-title">Dan's Blog</h1>
+			<nav>
+				<ul>
+					<li><a href="../index.html">Posts</a></li>
+					<li><a href="../about.html">About</a></li>
+				</ul>
+			</nav>
+		</header>
+		<article>
+			<h1>  Implementing a tool for creating point-and-figure (P&F) charts using Python</h1>
+			<time datetime="2023-04-06">06.04.2023</time>
+			<h2>Introduction</h3>
+			<p>In this post we will be implementing a tool for creating <a href="https://www.investopedia.com/terms/p/pointandfigurechart.asp">point-and-figure (P&amp;F) charts</a> using Python, <a href="https://pypi.org/project/yfinance/"><code>yfinance</code></a> and <a href="https://pandas.pydata.org/"><code>pandas</code></a>. For a while the outlook for the global economy has been gloomy and a lot of stocks have come down on their prices giving a potential opportunity to buy them. Implementing a tool that displays P&amp;F charts will help us find the best <a href="https://www.investopedia.com/thmb/yhY3ByCRFuTZdWwou4_j52euDIE=/750x0/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/PointandFigureCharting_ABasicIntroduction1_3-f2c1607b71134fcc922dff14537b373a.png">timing</a> for buying (and selling) stocks. </p>
+			<h2>Point-and-figure (P&F) charts</h3>
+			<p>P&amp;F charts are a way to visualize changes in price for various financial instruments without taking into consideration the passage of time. It is mostly used to keep track of medium-term trends.</p>
+			<p>For P&amp;F charts are usually formed using the daily close prices of the instrument. Each column of the P&amp;F chart consists of stacked <code>X</code>'s or <code>O</code>'s which represent rising and falling prices respectively. The space occupied by a single mark is called a box. To form a P&amp;F chart the trader needs to set the following parameters:</p>
+			<ul>
+                <li> <i>Box size</i> is a price range set by the trader. For example if the box size is set to <code>0.5</code> and the stock price is at <code>14.43</code>, then the corresponding box would be at <code>14.0</code>.</li>
+                <li> <i>Reversal amount</i> is another parameter set by the trader. It is the amount of change in boxes in the opposite direction needed for the trend to change direction. Usualy it is set to <code>3</code>. This means that if the box size is <code>0.5</code>, the trend is rising and the latest marked price is at level <code>14.0</code>, then the level of the new price would have to be lower or equal to <code>12.5</code> to change the trend from rising to falling.</li>
+			</ul>
+			<p>Progression of the price is marked in the chart based on following rules:</p>
+			<ul>
+				<li> If the trend is rising and the level of the price is higher than the highest level of the current stack, <code>X</code>'s are stacked on top of it until they reach the box that is on the level of the new highest price. Same applies for <code>O</code>'s in the opposite direction when the trend is falling.</li>
+				<li> If the difference in boxes between level of the price and level of the last marked price is over the reversal amount in the direction opposite to the trend, the direction of the trend will be changed. The new trend will have its marks in a new column.</li>
+				<li> The beginning of each month is represented in the chart by setting the first mark of the month to number 1-9 for January-September or letter A-C for October-December.</li>
+			</ul>
+			<p>Sampo's P&amp;F chart with box size <code>0.5</code> and reversal amount <code>3</code> beginning from 1.1.2022 until 6.4.2023 is shown below:</p>
+			<pre><code class="language-default">
+49.5                         X                                                                           
+49.0                         C1X                                                                         
+48.5                         XOX2                                                                        
+48.0                         XOXO                                                                        
+47.5                         XOXO                                                                        
+47.0                         XO O                                                                        
+46.5                       X X  O                                                                        
+46.0         X           X XBX  O                                                                        
+45.5         XO          XOXOX  O                                                                        
+45.0         XO        X XOXOX  O                                                                        
+44.5         XO        X9XOXOX  3                                                                        
+44.0         XOX       XOXOXO   OX                                                                       
+43.5         X5XO      XO OA    O4                                                                       
+43.0   X   X XOXOX     X  O     OX                                                                       
+42.5 1 XO  XOXOXOX6    8        OX                                                                       
+42.0  O2O  XO4OXOXOX X X        OX                                                                       
+41.5  OXOX XO OXO OX7XOX        O                                                                        
+41.0  OXOX3X  O   OXOXOX                                                                                 
+40.5  OXOXOX      OXO OX                                                                                 
+40.0  OXOXOX      O   O                                                                                  
+39.5  OXOXOX                                                                                             
+39.0  O O OX                                                                                             
+38.5      OX                                                                                             
+38.0      OX                                                                                             
+37.5      OX                                                                                             
+37.0      OX                                                                                             
+36.5      OX                                                                                             
+36.0      O                                                                                            
+			</code></pre>
+			<h2>Implementing the tool</h3>
+			<p>For the tool we need to install <code>pandas</code> and <code>yfinance</code> by writing the following line in console:</p>
+			<pre><code class="language-default">
+pip install pandas yfinance
+			</code></pre>
+			<p>Now import them to <code>point_and_figure.py</code>:</p>
+			<pre><code class="language-python">
+import yfinance as yf
+import pandas as pd
+import math
+			</code></pre>
+			<p>Before writing the actual code for P&amp;F charts let us write two helper functions. In <code>point_and_figure.py</code>:</p>
+			<pre><code class="language-python">
+#...
+def round_to_nearest(price, step):
+        return round(math.floor(price / step) * step, 2)
+def get_month_index(date):
+        month = str(date).split("-")[1]
+        match month:
+                case '01':
+                    return 0
+                case '02':
+                    return 1
+                case '03':
+                    return 2
+                case '04':
+                    return 3
+                case '05':
+                    return 4
+                case '06':
+                    return 5
+                case '07':
+                    return 6
+                case '08':
+                    return 7
+                case '09':
+                    return 8
+                case '10':
+                    return 9
+                case '11':
+                    return 10
+                case '12':
+                    return 11
+			</code></pre>
+			<p>With the help of step parameter <code>round_to_nearest</code> lets us round the price to the nearest price level. <code>get_month_index</code> determines the month from <code>date</code> which is in <code>yyyy-mm-dd</code> form and returns an index which we can later use to mark the month to the chart. Now that we have our helper functions we can begin writing the code for P&amp;F charts. In <code>point_and_figure.py</code>:</p>
+			<pre><code class="language-python">
+#...
+def chart(step, ticker, startDate, endDate=None):
+        instrument = yf.Ticker(ticker)
+        hist = instrument.history(start=startDate, end=endDate)
+        df = pd.DataFrame({'Date':hist['Close'].index, 'Close': hist['Close'].values})
+        close_prices = df['Close']
+        dates = df['Date']
+        # to be continued...
+			</code></pre>
+			<p>The box size (<code>step</code>), ticker of the instrument, start date and end date is passed to function <code>chart</code>. We access the financial data of the instrument with the <code>Ticker</code> module and create a dataframe out of its historical data. From the dataframe we extract closing prices of the instrument as well as the corresponding dates.</p>
+			<p>Next we will initialize the chart grid. We use the closing price of the starting day as well as the highest and lowest closing prices to determine the starting position on the chart as well as the height of the chart. We set the width of the chart to <code>100</code> columns. We will save the starting row as well as the starting price for later use. In <code>point_and_figure.py</code>:</p>
+			<pre><code class="language-python">
+#...
+def chart(step, ticker, startDate, endDate=None):
+    #...
+    current = round_to_nearest(close_prices[0], step)
+    min_price = round_to_nearest(min(close_prices), step)
+    max_price = round_to_nearest(max(close_prices), step)
+    height = round((max_price-min_price)/step)+1
+    width = 100
+    grid = [[' ' for _ in range(width)] for _ in range(height)]
+    row = round((max_price-current)/step)
+    col = 0
+    
+    startRow = row
+    b = current
+    # to be continued...
+			</code></pre>
+			<p>For the chart reversal amount needs to be set. We will name it <code>th</code> and give it value <code>3</code>. Regardless of the box size <code>3</code> is the default reversal amount in many cases. We will also create array <code>months</code> where we store the numbers/characters that correspond to months. We determine the month or the starting date and base on that set the starting mark to corresponding number/character on the grid.</p>
+			<p>We initialize <code>trend</code> to <code>0</code>. <code>trend</code> is set to <code>1</code> when it is rising and to <code>0</code> when it is falling. <code>dateIndex</code> is set to <code>1</code> which correspond to the next date after starting date. <code>newMonth</code> tells us wether the month has changed. The month is determined for the starting date so we set it to <code>False</code>. In <code>point_and_figure.py</code>:</p>
+			<pre><code class="language-python">
+#...
+def chart(step, ticker, startDate, endDate=None):
+    #...
+    th = 3
+    months = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C']
+    monthIndex = get_month_index(dates[0])
+    grid[row][col] = months[monthIndex]
+    
+    trend = 0 
+    dateIndex = 1
+    newMonth = False
+    # to be continued...
+			</code></pre>
+			<p>Next we will update the grid based on all the closing prices. In <code>point_and_figure.py</code>:</p>
+			<pre><code class="language-python">
+#...
+def chart(step, ticker, startDate, endDate=None):
+    #...
+    for close_price in close_prices[1:]:
+        oldMonthIndex = monthIndex
+        monthIndex = get_month_index(dates[dateIndex])
+        if oldMonthIndex != monthIndex:
+                newMonth = True
+        price_rounded = round_to_nearest(close_price, step)
+        if trend == 1:
+            if price_rounded &gt; current:
+                for i in range(0, round((price_rounded-current)/step)):
+                    if newMonth:
+                        grid[row-i-1][col] = months[monthIndex]
+                        newMonth = False
+                    else:
+                        grid[row-i-1][col] = 'X'
+                row -= round((price_rounded-current)/step)
+                current = price_rounded
+            elif price_rounded &lt;= current - th*step:
+                col += 1
+                for i in range(0, round((current-price_rounded)/step)):
+                    if newMonth:
+                        grid[row+i+1][col] = months[monthIndex]
+                        newMonth = False
+                    else:
+                        grid[row+i+1][col] = 'O'
+                row -= round((price_rounded-current)/step)
+                current = price_rounded
+                trend = -1
+        elif trend == -1:
+            if price_rounded &lt; current:
+                for i in range(0, round((current-price_rounded)/step)):
+                    if newMonth:
+                        grid[row+i+1][col] = months[monthIndex]
+                        newMonth = False
+                    else:
+                        grid[row+i+1][col] = 'O'
+                row -= round((price_rounded-current)/step)
+                current = price_rounded
+            elif price_rounded &gt;= current + th*step:
+                col += 1
+                for i in range(0, round((price_rounded-current)/step)):
+                    if newMonth:
+                        grid[row-i-1][col] = months[monthIndex]
+                        newMonth = False
+                    else:
+                        grid[row-i-1][col] = 'X'
+                row -= round((price_rounded-current)/step)
+                current = price_rounded
+                trend = 1
+        else:
+            if price_rounded &gt;= current + th*step:
+                for i in range(0, round((price_rounded-current)/step)):
+                    if newMonth:
+                        grid[row-i-1][col] = months[monthIndex]
+                        newMonth = False
+                    else:
+                        grid[row-i-1][col] = 'X'
+                row -= round((price_rounded-current)/step)
+                current = price_rounded
+                trend = 1
+            elif price_rounded &lt;= current - th*step:
+                col += 1
+                for i in range(0, round((current-price_rounded)/step)):
+                    if newMonth:
+                        grid[row+i+1][col] = months[monthIndex]
+                        newMonth = False
+                    else:
+                        grid[row+i+1][col] = 'O'
+                row -= round((price_rounded-current)/step)
+                current = price_rounded
+                trend = -1
+        dateIndex += 1
+    # to be continued...
+			</code></pre>
+			<p>Based on the value of <code>trend</code> the code updates the state of the chart based on the rules given. <code>newMonth</code> is set to <code>True</code> when the month changes and set back to <code>False</code> when the new month has been marked. Let us finish the code by returning the chart. In <code>point_and_figure.py</code>:</p>
+			<pre><code class="language-python">
+#...
+def chart(step, ticker, startDate, endDate=None):
+    #...
+    chart = ""
+    for i in range(height):
+        chart += "{:&gt;4.1f} ".format((startRow-i)*step+b)
+        for j in range(width):
+            chart += grid[i][j]
+        chart += "\n"
+    return chart
+			</code></pre>
+			<p>And there we have it! P&amp;F chart of Sampo starting with box size 0.5 starting from 1.1.2022 can be obtained and printed with following lines in <code>point_and_figure.py</code>:</p>
+			<pre><code class="language-python">
+#...
+s = chart(0.5, "SAMPO.HE", "2022-01-01")
+print(s)
+			</code></pre>
+			<p>Full source code can be found <a href="https://github.com/dannasman/point_and_figure">here</a>.</p>
+		</article>
+		<footer>
+			<p>In this blog you can find posts about projects I have been working on.</p>
+			<ul>
+				<li><a href="https://github.com/dannasman">GitHub</a></li>
+				<li>dan.nasman@gmail.com</li>
+			</ul>
+		</footer>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-python.min.js"></script>
+	</body>
+</html>

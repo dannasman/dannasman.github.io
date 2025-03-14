@@ -1,0 +1,134 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+		<link href="../assets/css/styles.css" rel="stylesheet">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+		<title> Qelvin - a compact quantum circuit simulator</title>
+	</head>
+	<body>
+		<header>
+			<h1 class="header-title">Dan's Blog</h1>
+			<nav>
+				<ul>
+					<li><a href="../index.html">Posts</a></li>
+					<li><a href="../about.html">About</a></li>
+				</ul>
+			</nav>
+		</header>
+		<article>
+			<h1> Qelvin - a compact quantum circuit simulator</h1>
+			<time datetime="2024-03-23">23.03.2024</time>
+			<h2>Introduction</h3>
+			<p>Over the past few decades, quantum computing has emerged as one of the most exciting new technologies. Quantum computers could potentially revolutionize many fields, such as chemistry and cryptography. To reach the capability of efficiently solving real-life problems, some characteristics of quantum computers need to be studied further. With the development of quantum computers still in progress, classical simulation of quantum circuits has proven to be an efficient way to study quantum computing and quantum information.</p>
+			<p>This article presents Qelvin, a single CPU state vector simulator for study and design of quantum circuits and quantum algorithms. This article discusses the logic, implementation and performance of the simulator.</p>
+			<h2>Background</h3>
+			<h3>Universality</h2>
+			<p>A set of quantum gates is said to be universal if any arbitrary quantum circuit can be constructed by only applying the gates in the set. One of these sets consists of general single-qubit and controlled two-qubit unitary gates. [1]</p>
+			<p>The set of gates implemented in Qelvin includes a single-qubit Hadamard</p>
+			\[
+			H=\frac{1}{\sqrt{2}}\begin{bmatrix}1 &amp; 1 \\ 1 &amp; -1\end{bmatrix},
+			\]
+			<p>Pauli gates</p>
+			\[
+			X=\begin{bmatrix}0 &amp; 1 \\ 1 &amp; 0\end{bmatrix},~Y=\begin{bmatrix}0 &amp; -i \\ i &amp; 0\end{bmatrix},~Z=\begin{bmatrix}1 &amp; 0 \\ 0 &amp; -1\end{bmatrix},
+			\]
+			<p>phase shift</p>
+			\[
+			P(\theta)=\begin{bmatrix}1 &amp; 0 \\ 0 &amp; e^{i\theta}\end{bmatrix},
+			\]
+			<p>and a general unitary gate</p>
+			\[
+			U=\begin{bmatrix} u_{11} &amp; u_{12} \\ u_{21} &amp; u_{22} \end{bmatrix}.
+			\]
+			<p>Controlled two-qubit $X$, $Y$, $Z$, $P(\theta)$ and $U$ gates were also implemented.</p>
+			<h3>Pure states</h2>
+			<p>A $N$ qubit quantum system can be described with a $2^N\times2^N$ density matrix $\rho$. In state vector simulations, a $N$ qubit quantum system is assumed to be in a pure state, enabling all information about the state to be stored in a $2^N$ state vector, significantly reducing the memory required  for the simulation. [1]</p>
+			<h2>Implementation</h3>
+			<p>The techniques used in Qelvin were first introduced in an article about qHiPSTER, the Quantum High Performance Software Testing environment [2]. Rust was the programming language of choice. Rayon was used for parallelization and PyO3 was used to implement Python bindings [3] [4].</p>
+			<h3>State vector</h2>
+			<p>The state vector used in a $N$-qubit system consists of $2^N$ complex numbers. A complex number consists of two $64$ bit double precision floating point numbers that correspond to real and imaginary parts. The total memory required to store the state of the system is thus $2^N\times2\times64$ bits.</p>
+			<h3>Gate application</h2>
+			<p>Let us consider the case where a single-qubit gate $U$ is applied to the $t$:th qubit. The gate needs to be applied to every single state that has the form</p>
+			\[
+			\alpha|b_1b_2...b_{t-1}0b_{t+1}...b_{N}\rangle+\beta|b_1b_2...b_{t-1}1b_{t+1}...b_{N}\rangle,
+			\]
+			<p>where $b_i\in\{0, 1\}$, $i\neq t$. The difference between the indexes of the two state vectors $b_1b_2...b_{t-1}0b_{t+1}...b_{N}$ and $b_1b_2...b_{t-1}1b_{t+1}...b_{N}$ is $t$. With this information we can form a gate application algorithm:</p>
+			<pre><code class="language-default">
+for g=0; g&lt;2^N; g += 2^(t+1):
+    for i=g; i &lt; g+2^t; i++:
+        j = i + 2^t
+        states[i] = u_11*states[i] + u_12*states[j]
+        states[j] = u_21*states[i] + u_22*states[j]
+			</code></pre>
+			<p>The algorithm can be made suitable for two-qubit controlled $U$ gate by simply adding a conditional statements that checks whether <code>t</code>:th bit of <code>i</code> and/or <code>j</code> equal to one before updating the value in the state vector. This algorithm can be applied to all the  gates in our set of gates discussed earlier by simply changing <code>u_11</code>, <code>u_12</code>, <code>u_21</code> and <code>u_22</code> to matrix elements corresponding to the gate of choice.</p>
+			<h2>Optimizations</h3>
+			<h3>Parallel iteration</h2>
+			<p>Note that the iterations of the innermost loop of the gate application algorithm do not depend on each other making the outer loops parallelizable. In Qelvin states are grouped into chunks each consisting of $2^{t+1}$ adjacent states. Gate application for each chunk is computed in parallel.</p>
+			<h3>Vector instructions</h2>
+			<p>Vector instructions were used to optimize the innermost loop of the gate application algorithm. The innermost loop has four complex multiplications and two complex additions equaling to $4\cdot6+2\cdot2=28$ double precision arithmetic operations done sequentially. By using SIMD (single instruction, multiple data) instructions it is possible to process four double precision floating point numbers simultaneously in parallel improving the throughput of the gate application algorithm. Optimizations related to vector instructions were targeted for CPUs with x86 architecture and AVX and FMA support.</p>
+			<h2>Results</h3>
+			<p>The performance of Qelvin was evaluated by computing the Quantum Fourier Transform for circuits with different number of qubits and benchmarking it against Qiskit [5]. The CPU used in benchmarking was Intel® Core™ i7-8650U. The execution time and memory usage benchmarks are shown in the figures below.</p>
+			<p>The execution time of Qelvin is slightly shorter compared to Qiskit whereas the memory usage of Qelvin increases faster compared to Qiskit as the number of qubits increases, which is expected since no memory optimizations had not been considered when implementing Qelvin. Qelvin was implemented with specific architecture in mind which may cause less overhead and play a part in the difference in execution time.</p>
+            <figure>
+			    <img src="../assets/img/qelvin_qft_benchmark.png"></img>
+                <figcaption>Performance of QFT on different number of qubits</figcaption>
+            </figure>
+            <figure>
+			    <img src="../assets/img/qelvin_qft_mem_usage.png"></img>
+			    <figcaption>Memory usage when computing QFT for systems with different  number of qubits</figcaption>
+            </figure>
+			<h2>Conclusion</h3>
+			<p>A state vector simulator Qelvin, targeted for single CPU machines, was implemented and benchmarked against an industry-standard software. Qelvin proved to be on par with its counter part in execution time measurements. Lack of memory usage optimizations made Qelvin perform slightly below par in memory usage benchmarks.</p>
+			<p>Possible future directions for Qelvin involve memory optimization, GPU implementation for the gate application algorithm and usage of multiple CPUs. The source code of Qelvin can be found online [6].</p>
+			<h2>References</h3>
+			<ol>
+                <li> Smelyanskiy, M., Sawaya, N. P. D., &amp; Aspuru-Guzik, A. (2016). <i>qHiPSTER: The Quantum High Performance Software Testing Environment</i>.</li>
+                <li> Nielsen, M. A., &amp; Chuang, I. L. (2010). <i>Quantum Computation and Quantum Information: 10th Anniversary Edition</i>. Cambridge University Press.</li>
+                <li> Rayon Project and Contributors. <i>Rayon</i>. https://github.com/rayon-rs/rayon</li>
+                <li> PyO3 Project and Contributors. <i>PyO3</i>. https://github.com/PyO3/pyo3</li>
+                <li> Qiskit contributors. (2023). <i>Qiskit: An Open-source Framework for Quantum Computing</i>. https://doi.org/10.5281/zenodo.2573505</li>
+                <li> Näsman D. <i>Qelvin</i>. https://github.com/dannasman/qelvin</li>
+			</ol>
+		</article>
+		<footer>
+			<p>In this blog you can find posts about projects I have been working on.</p>
+			<ul>
+				<li><a href="https://github.com/dannasman">GitHub</a></li>
+				<li>dan.nasman@gmail.com</li>
+			</ul>
+		</footer>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+	</body>
+</html>

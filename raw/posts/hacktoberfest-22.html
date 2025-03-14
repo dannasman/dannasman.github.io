@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+        <link href="../assets/css/styles.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+        <script type="text/javascript" async
+            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+        </script>
+        <title>Hacktoberfest 2022 update</title>
+    </head>
+    <body>
+        <header>
+            <h1 class="header-title">Dan's Blog</h1>
+            <nav>
+                <ul>
+                    <li><a href="../index.html">Posts</a></li>
+                    <li><a href="../about.html">About</a></li>
+                </ul>
+            </nav>
+        </header>
+        <article>
+            <h1>Hacktoberfest 2022 update</h1>
+            <time datetime="2022-10-21">26.8.2022</time>
+            <p>This year was my first time participating in Hacktoberfest. With little over a week left I have managed to complete the challenge with one merged pull request to <a href="https://github.com/zellij-org/zellij">Zellij</a> and three to <a href="https://github.com/RustPython/RustPython">RustPython</a>. For a couple of months now I have been getting more and more interested in the Rust programming language. When I read about Hacktoberfest 2022 I immediately got exited about measuring the knowledge I had acquired so far by contributing to open source Rust projects.</p>
+            <h2>Zellij</h2>
+            <p>One of the four PRs submitted was to Zellij:</p>
+            <blockquote>
+                <p>Zellij is a workspace aimed at developers, ops-oriented people and anyone who loves the terminal. At its core, it is a terminal multiplexer (similar to tmux and screen), but this is merely its infrastructure layer.</p>
+                <p>Zellij includes a layout system, and a plugin system allowing one to create plugins in any language that compiles to WebAssembly.</p>
+                <p>– <a href="https://github.com/zellij-org/zellij">Zellij Github repository</a><p>
+            </blockquote>
+            <p>The PR added a new feature to the <code>dump-screen</code> command. A flag <code>-f</code> or <code>--full</code> was added to indicate whether the full scrollback was to be dumped or just the viewport when using <code>zellij action dump-screen</code>.</p>
+            <p>The maintainers of the repository were very welcoming and provided guidance as I worked on the solution.</p>
+            <h2>RustPython</h2>
+            <p>Remaining three PRs were submitted to RustPython:</p>
+            <blockquote>
+                <p>RustPython is a Python interpreter written in Rust. RustPython can be embedded into Rust programs to use Python as a scripting language for your application, or it can be compiled to WebAssembly in order to run Python in the browser. RustPython is free and open-source under the MIT license.</p>
+                <p>– <a href="https://rustpython.github.io/">RustPython website</a></p>
+            </blockquote>
+            <p>Having an interest in compiler/interpreter design and Rust, contributing to this project was a no-brainer. The first pull request was about implementing the <code>__replace__</code> method for code object. The method returns a copy of the original code object with values passed as parameters. Example:</p>
+            <pre><code class="language-py">&gt;&gt;&gt; def f(x, y): pass
+... 
+&gt;&gt;&gt; f.__code__.co_varnames
+('x', 'y')
+&gt;&gt;&gt; g = f.__code__.replace(co_varnames=('a', 'b'))
+&gt;&gt;&gt; g.co_varnames
+('a', 'b')
+&gt;&gt;&gt;</code></pre>
+            <p>The two other PRs were about implementing <code>__reduce__</code> and <code>__setstate__</code> functions for <code>itertools</code> objects <code>chain</code> and <code>zip_longest</code>. The purpose of the <code>__reduce__</code> function is to provide information of the object for pickling. <code>__setstate__</code> is used to alter the state of the object.</p>
+            <p>Examples:</p>
+            <pre><code class="language-python">&gt;&gt;&gt; from itertools import *
+&gt;&gt;&gt; c1 = chain('abc', 'def')
+&gt;&gt;&gt; c1.__reduce__()
+(<class 'itertools.chain'>, (), (<list_iterator object at 0x5576129990e0>,))
+&gt;&gt;&gt; c2 = chain('def', 'abc')
+&gt;&gt;&gt; c2
+<itertools.chain object at 0x5576128ede40>
+&gt;&gt;&gt; c1.__setstate__((c2.__reduce__()[2][0], ))
+&gt;&gt;&gt; list(c1)
+['d', 'e', 'f', 'a', 'b', 'c']
+&gt;&gt;&gt; z1 = zip_longest('abc', 'defg')
+&gt;&gt;&gt; z1
+<itertools.zip_longest object at 0x557612adc7b0>
+&gt;&gt;&gt; z1.__reduce__()
+(<class 'itertools.zip_longest'>, (<str_iterator object at 0x5576129742f0>, <str_iterator object at 0x557612adef50>), None)
+&gt;&gt;&gt; z2 = zip_longest('abcd', 'efg')
+&gt;&gt;&gt; z2
+<itertools.zip_longest object at 0x557612991f30>
+&gt;&gt;&gt; z2.__reduce__()
+(<class 'itertools.zip_longest'>, (<str_iterator object at 0x5576129d22d0>, <str_iterator object at 0x5576129b6ad0>), None)
+&gt;&gt;&gt; z1.__setstate__(z2.__reduce__()[2])
+&gt;&gt;&gt; z1.__reduce__()
+(<class 'itertools.zip_longest'>, (<str_iterator object at 0x5576129742f0>, <str_iterator object at 0x557612adef50>), None)
+&gt;&gt;&gt; list(z1)
+[('a', 'd'), ('b', 'e'), ('c', 'f'), (None, 'g')]
+&gt;&gt;&gt; z2.__setstate__(1)
+&gt;&gt;&gt; z2.__reduce__()
+(<class 'itertools.zip_longest'>, (<str_iterator object at 0x5576129d22d0>, <str_iterator object at 0x5576129b6ad0>), 1)
+&gt;&gt;&gt; list(z2)
+[('a', 'e'), ('b', 'f'), ('c', 'g'), ('d', 1)]
+&gt;&gt;&gt;</code></pre>
+            <p>The maintainers of the repository were welcoming and I learnt a lot from their constructive feedback.</p>
+            <h2>Ending words</h2>
+            <p>Overall this challenge was fun and educational. It was insightful to see how people around the globe have come together to work on projects that bring value. Below is a holopin board displaying the pins I've managed to gather so far during Hacktoberfest 2022!</p>
+            <a href="https://holopin.io/@kochie">
+                <img class="holopin" src="https://holopin.me/kochie" alt="@kochie's Holopin board" />
+            </a>
+        </article>
+        <footer>
+            <p>In this blog you can find posts about projects I have been working on.</p>
+            <ul>
+                <li><a href="https://github.com/dannasman">GitHub</a></li>
+                <li>dan.nasman@gmail.com</li>
+            </ul>
+        </footer>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-python.min.js"></script>
+    </body>
+</html>
