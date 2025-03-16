@@ -106,10 +106,12 @@
 			<p>From the equation above we form equation</p>
 			\[\begin{equation}
             \begin{split}
-				-\dfrac{\partial^2\psi}{\partial t^2} = &amp;~\left(i\alpha_x\dfrac{\partial}{\partial x}+i\alpha_y\dfrac{\partial}{\partial y}+i\alpha_z\dfrac{\partial}{\partial z}-\beta m\right)\left(i\alpha_x\dfrac{\partial}{\partial x}+i\alpha_y\dfrac{\partial}{\partial y}+i\alpha_z\dfrac{\partial}{\partial z}-\beta m\right)\psi \newline
-			\Rightarrow\dfrac{\partial^2\psi}{\partial t^2} = &amp;~\alpha_x^2\dfrac{\partial^2\psi}{\partial x^2}+\alpha_y^2\dfrac{\partial^2\psi}{\partial y^2}+\alpha_z^2\dfrac{\partial^2\psi}{\partial z^2}-\beta^2m\psi \newline
-			&amp;+(\alpha_x\alpha_y-\alpha_y\alpha_x)\dfrac{\partial^2\psi}{\partial x\partial y}+(\alpha_y\alpha_z-\alpha_z\alpha_y)\dfrac{\partial^2\psi}{\partial y\partial z}+(\alpha_x\alpha_z-\alpha_z\alpha_x)\dfrac{\partial^2\psi}{\partial x\partial z} \newline
-			&amp;+i\left(\alpha_x\beta+\beta\alpha_x\right)m\dfrac{\partial\psi}{\partial x}+i\left(\alpha_y\beta+\beta\alpha_y\right)m\dfrac{\partial\psi}{\partial y}+i\left(\alpha_z\beta+\beta\alpha_z\right)m\dfrac{\partial\psi}{\partial z}.
+				-\dfrac{\partial^2\psi}{\partial t^2} = &amp;~\left(i\alpha_x\dfrac{\partial}{\partial x}+i\alpha_y\dfrac{\partial}{\partial y}+i\alpha_z\dfrac{\partial}{\partial z}-\beta m\right)\\
+                &amp;\times\left(i\alpha_x\dfrac{\partial}{\partial x}+i\alpha_y\dfrac{\partial}{\partial y}+i\alpha_z\dfrac{\partial}{\partial z}-\beta m\right)\psi \newline
+			\Rightarrow\dfrac{\partial^2\psi}{\partial t^2} = &amp;~\alpha_x^2\dfrac{\partial^2\psi}{\partial x^2}+\alpha_y^2\dfrac{\partial^2\psi}{\partial y^2}+\alpha_z^2\dfrac{\partial^2\psi}{\partial z^2}-\beta^2m\psi\\
+			&amp;+(\alpha_x\alpha_y-\alpha_y\alpha_x)\dfrac{\partial^2\psi}{\partial x\partial y}+(\alpha_y\alpha_z-\alpha_z\alpha_y)\dfrac{\partial^2\psi}{\partial y\partial z}\\
+            &amp;+(\alpha_x\alpha_z-\alpha_z\alpha_x)\dfrac{\partial^2\psi}{\partial x\partial z}+i\left(\alpha_x\beta+\beta\alpha_x\right)m\dfrac{\partial\psi}{\partial x}\\
+            &amp;+i\left(\alpha_y\beta+\beta\alpha_y\right)m\dfrac{\partial\psi}{\partial y}+i\left(\alpha_z\beta+\beta\alpha_z\right)m\dfrac{\partial\psi}{\partial z}.
 			\end{split}
             \end{equation}\]
 			<p>In order for this equation to satisfy the Klein-Gordon equation</p>
@@ -147,7 +149,10 @@
             \end{equation}\]
 			<p>with</p>
 			\[\begin{equation}
-			I=\begin{pmatrix}1 &amp; 0 \\ 0 &amp; 1\end{pmatrix},~\sigma_x=\begin{pmatrix}0 &amp; 1 \\ 1 &amp; 0\end{pmatrix},~\sigma_y=\begin{pmatrix}0 &amp; -i \\ i &amp; 0\end{pmatrix}~\mathrm{and}~\sigma_z=\begin{pmatrix}1 &amp; 0 \\ 0 &amp; -1\end{pmatrix}.
+            \begin{split}
+			I=\begin{pmatrix}1 &amp; 0 \\ 0 &amp; 1\end{pmatrix},&amp;~\sigma_x=\begin{pmatrix}0 &amp; 1 \\ 1 &amp; 0\end{pmatrix},\\
+            \sigma_y=\begin{pmatrix}0 &amp; -i \\ i &amp; 0\end{pmatrix},&amp;~\sigma_z=\begin{pmatrix}1 &amp; 0 \\ 0 &amp; -1\end{pmatrix}.
+            \end{split}
             \end{equation}\]
 			<p>To obtain an equations for probability density we take $\psi^\dagger\times\mathrm{DE}-\psi\times\mathrm{DE}^\dagger$ and get</p>
 			\[\begin{equation}

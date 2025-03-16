@@ -40,7 +40,7 @@
 		<script type="text/javascript" async
 			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
 		</script>
-		<title> Rusty compiler</title>
+		<title>Rusty compiler: Intermediate code for expressions</title>
 	</head>
 	<body>
 		<header>
@@ -53,7 +53,7 @@
 			</nav>
 		</header>
 		<article>
-			<h1> Rusty compiler</h1>
+			<h1>Rusty compiler: Intermediate code for expressions</h1>
 			<time datetime="2023-01-20">20.01.2023</time>
 			<p>This post is a follow-up on the previous <a href="{% post_url 2022-08-26-lexer-written-in-rust %}">post</a> on the topic of writing a lexer and is part of a series of posts in which I try to design and implement a compiler written in Rust. Intermediate code for expressions is the main topic of this post but there has also been some updates on the lexer code and the updates will be display at the end. This post as well as the future posts about the parser are heavily inspired by the legendary <a href="https://en.wikipedia.org/wiki/Compilers:_Principles,_Techniques,_and_Tools">dragon book</a> and its example code. The source code for the compiler frontend discussed in this series of posts is available on GitHub (<a href="https://github.com/dannasman/numera">link to the repo</a>).</p>
 			<p>Intermediate code is an important part when writing a parser. It implements the nodes used in the <a href="https://en.wikipedia.org/wiki/Abstract_syntax_tree">abstract syntax tree</a> (AST). The nodes can be divided into statements and expressions. Before we get into the implementation of expression nodes let us define a grammar for our language:</p>
