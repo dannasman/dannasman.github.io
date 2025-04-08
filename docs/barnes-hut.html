@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
-        <link href="../assets/css/styles.css" rel="stylesheet">
+        <link href="assets/css/styles.css" rel="stylesheet">
         <script type="text/x-mathjax-config">
             MathJax.Hub.Config({
                 TeX: {
@@ -45,8 +45,8 @@
             <h1 class="header-title">Dan's Blog</h1>
             <nav>
                 <ul>
-                    <li><a href="../index.html">Posts</a></li>
-                    <li><a href="../about.html">About</a></li>
+                    <li><a href="index.html">Posts</a></li>
+                    <li><a href="about.html">About</a></li>
                 </ul>
             </nav>
         </header>
@@ -56,10 +56,10 @@
             <h2>Introduction</h2>
             <p>In this post we will be implementing an algorithm to model Coulomb interactions between particles using the Barnes-Hut algorithm. A problem where interactions in a dynamical system of particles simulated is called a <b>N-body problem</b>. As the the number of particles in the system rises the problem gets increasingly harder. Computation of the problem using brute force has a time complexity of $ O(N^2) $. In their 1986 <a href="https://www.nature.com/articles/324446a0">paper</a> Josh Barnes and Piet Hut introduced a new approach to solving the problem in $O(N\log{N})$ time.</p>
             <p>The core idea of the alogrithm is to divide the space into subcells. The space containing the particles starts off as one cell. The cells that contain more than one particle are recursively divided into smaller subcells until all the cells contain only one particle. Cells with no particles in them are discarded. The construction of $N$ particles can be done in $O(N\log{N})$ time. After the construction of the cell structure we end up with a structure similar to the one presented in the <a href="https://www.nature.com/articles/324446a0">paper</a>:</p>
-            <img src="../assets/img/octree.png"></img>
+            <img src="assets/img/octree.png"></img>
             <p>Once the octree structure has been constructed the charges contained by each cell as well as its center of charge is calculated in $O(N\log{N})$ time for $N$ particles. After the charge distribution calculations the Coulomb force exerted by the particles in the octree on the given particle can be calculated. Calculating the Coulomb interactions between $N$ particles can be done in $O(N\log{N})$ time.</p>
             <p>Example of the force distribution:</p>
-            <img src="../assets/img/force_distribution.png"></img>
+            <img src="assets/img/force_distribution.png"></img>
             <p>Let us now implement the algorithm.</p>
             <h2>Auxiliary data structures</h2>
             <p>To help implement the algorithm we implement the <code>Vector</code> and <code>Particle</code> data structures. Let us first implement the <code>Vector</code> structure and the vector calculation functions the Barnes-Hut algorithm needs. It has three fields corresponding to the $x,  y$ and $ z $ components of the vector. In <code>vector.rs</code>:</p>

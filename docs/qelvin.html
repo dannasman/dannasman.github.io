@@ -5,7 +5,7 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
-		<link href="../assets/css/styles.css" rel="stylesheet">
+		<link href="assets/css/styles.css" rel="stylesheet">
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-SC7DNE9Z34"></script>
         <script>
@@ -47,8 +47,8 @@
 			<h1 class="header-title">Dan's Blog</h1>
 			<nav>
 				<ul>
-					<li><a href="../index.html">Posts</a></li>
-					<li><a href="../about.html">About</a></li>
+					<li><a href="index.html">Posts</a></li>
+					<li><a href="about.html">About</a></li>
 				</ul>
 			</nav>
 		</header>
@@ -107,11 +107,11 @@ for g=0; g&lt;2^N; g += 2^(t+1):
 			<p>The performance of Qelvin was evaluated by computing the Quantum Fourier Transform for circuits with different number of qubits and benchmarking it against Qiskit [5]. The CPU used in benchmarking was Intel® Core™ i7-8650U. The execution time and memory usage benchmarks are shown in the figures below.</p>
 			<p>The execution time of Qelvin is slightly shorter compared to Qiskit whereas the memory usage of Qelvin increases faster compared to Qiskit as the number of qubits increases, which is expected since no memory optimizations had not been considered when implementing Qelvin. Qelvin was implemented with specific architecture in mind which may cause less overhead and play a part in the difference in execution time.</p>
             <figure>
-			    <img src="../assets/img/qelvin_qft_benchmark.png"></img>
+			    <img src="assets/img/qelvin_qft_benchmark.png"></img>
                 <figcaption>Performance of QFT on different number of qubits</figcaption>
             </figure>
             <figure>
-			    <img src="../assets/img/qelvin_qft_mem_usage.png"></img>
+			    <img src="assets/img/qelvin_qft_mem_usage.png"></img>
 			    <figcaption>Memory usage when computing QFT for systems with different  number of qubits</figcaption>
             </figure>
 			<h2>Conclusion</h3>

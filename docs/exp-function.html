@@ -5,7 +5,7 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
-		<link href="../assets/css/styles.css" rel="stylesheet">
+		<link href="assets/css/styles.css" rel="stylesheet">
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-SC7DNE9Z34"></script>
         <script>
@@ -47,8 +47,8 @@
 			<h1 class="header-title">Dan's Blog</h1>
 			<nav>
 				<ul>
-					<li><a href="../index.html">Posts</a></li>
-					<li><a href="../about.html">About</a></li>
+					<li><a href="index.html">Posts</a></li>
+					<li><a href="about.html">About</a></li>
 				</ul>
 			</nav>
 		</header>
@@ -97,7 +97,7 @@
             \end{equation}\]
             <p>where $a_0,...,a_n$ are coefficients with values depending on the chosen polynomial approximation method. The values of $\mathcal{K}\left(x_f\right)$ over $x_f\in[0,1)$ are shown in the figure 1.</p>
             <figure>
-                <img src="../assets/img/correction.svg"></img>
+                <img src="assets/img/correction.svg"></img>
                 <figcaption><b>Figure 1</b>: $\mathcal{K}\left(x_f\right)$ over $x_f\in[0,1)$.</figcaption>
             </figure>
             <p>The figure suggests that an approximation of form $\mathcal{K}_2\left(x_f\right)=a_0+a_1x_f+a_2x_f^2$ could be a good first trial. We obtain coefficients</p>
@@ -111,7 +111,7 @@
             \end{equation}\]
             <p>Figure 2 shows correction functions $\mathcal{K}$ and $\mathcal{K}_2$.</p>
             <figure>
-                <img src="../assets/img/corrections_K_K2.svg"></img>
+                <img src="assets/img/corrections_K_K2.svg"></img>
                 <figcaption><b>Figure 2</b>: Correction functions $\mathcal{K}$ and $\mathcal{K}_2$.</figcaption>
             </figure>
             <p>We can see that $\mathcal{K}_2$ does not quite align with $\mathcal{K}$. To obtain a more accurate approximation we introduce <a href="https://en.wikipedia.org/wiki/Chebyshev_polynomials">Chebyshev polynomials</a>. We begin by defining Chebyshev coefficients</p>
@@ -124,11 +124,11 @@
             \end{equation}\]
             <p>where $T_i\left(x\right)=\cos(i\cos^{-1}(x))$ is the $i$:th Chebyshev polynomial of first kind. Chebyshev interpolation of $\mathcal{K}$ with $n=4$ is shown in figure 3. The errors $||\mathcal{K}-\mathcal{K}_n||$ for different values for $n$ is displayed in figure 4.</p>
             <figure>
-                <img src="../assets/img/corrections_K_cheb4.svg"></img>
+                <img src="assets/img/corrections_K_cheb4.svg"></img>
                 <figcaption><b>Figure 3</b>: Correction function $\mathcal{K}$ and its Chebyshev interpolation with $n=4$.</figcaption>
             </figure>
             <figure>
-                <img src="../assets/img/corrections_errors.svg"></img>
+                <img src="assets/img/corrections_errors.svg"></img>
                 <figcaption><b>Figure 4</b>: Errors for Chebyshev interpolations with different $n$.</figcaption>
             </figure>
             <p>We see that the error decreases significantly as $n$ increases. Let us now examine the accuracy of the approximations of $e^x$ using Chebyshev polynomials. Let us use $n=6$. At first glance the Chebyshev polynomials $T_i(x)$ seem computationally tricky. Luckily for us, they can be expressed as<p>
@@ -148,11 +148,11 @@
             \end{equation}\]
             <p>Figure 5 displays a comparison between the Chebyshev approximation with $n=5$ and the glibc implementation.</p>
             <figure>
-                <img src="../assets/img/exp_comparison.svg"></img>
+                <img src="assets/img/exp_comparison.svg"></img>
                 <figcaption><b>Figure 5</b>: Correctin function $\mathcal{K}$ and its Chebyshev interpolation with $n=6$.</figcaption>
             </figure>
             <figure>
-                <img src="../assets/img/exp_comparison_diff.svg"></img>
+                <img src="assets/img/exp_comparison_diff.svg"></img>
                 <figcaption><b>Figure 6</b>: Relative difference between the glibc implementation and Chebyshev approximation with $n=6$.</figcaption>
             </figure>
             <p>We see that the values align with each other with relative difference having magintude $\sim10^{-6}$. Figure 4 suggests that the approximation might improve by increasing $n$. This will of course come at a cost of increased number of arithmetic operations per approximation. The beauty of this method is that the computational efficiency and accuracy can be adjusted according to use case. I highly recommend diving deeper into the paper to see deeper analysis on this topic.</p>

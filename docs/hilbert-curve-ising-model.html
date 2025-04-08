@@ -5,7 +5,7 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
-		<link href="../assets/css/styles.css" rel="stylesheet">
+		<link href="assets/css/styles.css" rel="stylesheet">
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-SC7DNE9Z34"></script>
         <script>
@@ -47,8 +47,8 @@
 			<h1 class="header-title">Dan's Blog</h1>
 			<nav>
 				<ul>
-					<li><a href="../index.html">Posts</a></li>
-					<li><a href="../about.html">About</a></li>
+					<li><a href="index.html">Posts</a></li>
+					<li><a href="about.html">About</a></li>
 				</ul>
 			</nav>
 		</header>
@@ -69,7 +69,7 @@
 				<li> Draw a "U" that goes down and has a counterclockwise rotation.</li>
 			</ol>
             <figure>
-			    <img src="../assets/img/hilbert_curve.png"></img>
+			    <img src="assets/img/hilbert_curve.png"></img>
                 <figcaption>Order 5 Hibert curve</figcaption>
             </figure>
 			<p>For more detailed explanation of Hilbert curves I recommend you to read chapter 16 in <a href="https://www.amazon.com/Hackers-Delight-2nd-Henry-Warren/dp/0321842685">Hacker's Delight 2nd Edition</a>. The method used in this post for calculating positions was taken from the book.</p>
@@ -161,16 +161,16 @@ impl SpinGrid {
 			</code></pre>
 			<p>Let us now compare the computation times and 2D images of spin configurations of the two methods.</p>
             <figure>
-			    <img src="../assets/img/benchmark.png"></img>
+			    <img src="assets/img/benchmark.png"></img>
                 <figcaption>Computation times for the methods on $2^n\times 2^n$ grids with $n=1, 2, ..., 14$</figcaption>
             </figure>
 			<p>As we can see from the benchmarks above the computation time for the random position method increases significantly more compared to the method that uses Hilbert curve as the grid size increases. The Hilbert curve method is over 10x faster for the $16384\times16384$ grid.</p>
             <figure>
-			    <img src="../assets/img/2d_ising_random.png"></img>
+			    <img src="assets/img/2d_ising_random.png"></img>
                 <figcaption>2D image of spin configuration for random position method on a $128\times128$ grid with $T=2.269$ K, $J=1.0$ and $1000$ Monte Carlo steps.</figcaption>
             </figure>
             <figure>
-			    <img src="../assets/img/2d_ising_hcurve.png"></img>
+			    <img src="assets/img/2d_ising_hcurve.png"></img>
                 <figcaption>2D image of spin configuration for Hilbert curve method on a $128\times128$ grid with $T=2.269$ K, $J=1.0$ and $1000$ Monte Carlo steps.</figcaption>
             </figure>
 			<p>As we can see from the 2D images the configurations resemble each other. There is no signs of the Hilbert curve pattern in the 2D image. This is partly due to the amount of Monte Carlo steps. As the amount of steps increases the influence of randomness provided by the Boltzmann distribution increases and the images start to look alike regardless of the method.</p>
