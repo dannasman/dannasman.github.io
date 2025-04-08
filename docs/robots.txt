@@ -1,4 +1,4 @@
 User-agent: *
-Disallow: 
+Disallow: /assets/
 
-Sitemap: https://www.example.com/sitemap.xml
+Sitemap: https://dannasman.github.io/sitemap.xml
