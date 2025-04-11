@@ -89,7 +89,7 @@
             \[\begin{equation}
             2^{23}\cdot\left[\frac{x}{\ln{2}}+\mathcal{K}\left(x_f\right)+x_0\right]
             \end{equation}\]
-            into a 32 bit integer we get a sequence of bits where $2^{x_i}$ is stored in the bits corresponding to the exponent and the bits corresponding to the mantissa contain the fractoinal part $x_f$ corrected by $\mathcal{K}\left(x_f\right)$. By casting the integer to a 32 bit floating point number we obtain an approximation of $e^{x}$.</p>
+            into a 32 bit integer we get a sequence of bits where $2^{x_i}$ is stored in the bits corresponding to the exponent and the bits corresponding to the mantissa contain $2^{x_f}$. By casting the integer to a 32 bit floating point number we obtain an approximation of $e^{x}$.</p>
             <h3>Modeling the correction function</h3>
             <p>There is a vast amount of methods that can be used to model the correction function $\mathcal{K}(x_f)$. We are going to use polynomial approximation which is was also used in the paper. We reformulate the correction function as</p>
             \[\begin{equation}
