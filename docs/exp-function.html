@@ -59,9 +59,9 @@
             \[\begin{equation*}
             \mathrm{softmax}(\mathbf{x})_i=\frac{e^{x_i}}{\sum_{j=1}^ne^{x_j}},~\mathbf{x}\in\mathbb{R}^n,
             \end{equation*}\]
-            which is heavily used in <a href="https://d2l.ai/chapter_linear-classification/softmax-regression.html">linear neural netwoks for classification</a>. Due to the heavy use of the function, there is an interest in finding optimizations for the exponential function. While diving deeper into the subject, I found a <a href="https://www.researchgate.net/publication/272178514_Fast_Exponential_Computation_on_SIMD_Architectures">paper</a> by Malossi, A. Cristiano I. &amp; Ineichen, Yves &amp; Bekas, Costas &amp; Curioni, Alessandro, which presents an interesting implementation for approximating the exponential function. The implementation offers flexible tuning of parameters to obtain the accuracy needed. In this post I will be go through the implementation and experiment with it using different parameters.</p>
+            which is heavily used in <a href="https://d2l.ai/chapter_linear-classification/softmax-regression.html">linear neural netwoks for classification</a>. Due to the heavy use of the function, there is an interest in finding optimizations for the exponential function. While diving deeper into the subject, I found a <a href="https://www.researchgate.net/publication/272178514_Fast_Exponential_Computation_on_SIMD_Architectures">paper</a> by Malossi, A. Cristiano I. &amp; Ineichen, Yves &amp; Bekas, Costas &amp; Curioni, Alessandro, which presents an interesting implementation for approximating the exponential function. The implementation offers flexible tuning of parameters to obtain the accuracy needed. In this post I go through the implementation and experiment with it using different parameters.</p>
             <h3>IEEE format of floating point numbers</h3>
-            The <i>IEEE Standard for floating point arithmetic</i>, better known as IEEE 754 or IEEE arithmetic, expresses floating point numbers as 
+            The <i>IEEE Standard for floating point arithmetic</i>, better known as IEEE 754 or IEEE arithmetic, expresses single precision floating point numbers as
             \[\begin{equation}
             \label{eq:1}
             (-1)^s(1+m)2^{x-x_0},
@@ -91,7 +91,7 @@
             \end{equation}\]
             into a 32 bit integer we get a sequence of bits where $2^{x_i}$ is stored in the bits corresponding to the exponent and the bits corresponding to the mantissa contain $2^{x_f}$. By casting the integer to a 32 bit floating point number we obtain an approximation of $e^{x}$.</p>
             <h3>Modeling the correction function</h3>
-            <p>There is a vast amount of methods that can be used to model the correction function $\mathcal{K}(x_f)$. We are going to use polynomial approximation which is was also used in the paper. We reformulate the correction function as</p>
+            <p>There is a vast amount of methods that can be used to model the correction function $\mathcal{K}(x_f)$. We are going to use polynomial approximation which was also used in the paper. We reformulate the correction function as</p>
             \[\begin{equation}
                 \mathcal{K}_n\left(x_f\right)=a_0+a_1x_f+a_2x_f^2+...+a_nx_f^n,~n\in\mathbb{N},
             \end{equation}\]
