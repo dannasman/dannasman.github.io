@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+        <link href="assets/css/styles.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+        <script type="text/javascript" async
+            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+        </script>
+        <script type="text/x-mathjax-config">
+            MathJax.Hub.Config({
+                TeX: {
+                    equationNumbers: { autoNumber: "AMS" },
+                    tagSide: "right"
+                },
+                tex2jax: {
+                    inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+                    displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+                    processEscapes: true
+                }
+            });
+            MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+                MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+                    clearTag() {
+                        if (!this.global.notags) {
+                            this.super(arguments).clearTag.call(this);
+                        }
+                    }
+                });
+            });
+        </script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-SC7DNE9Z34"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-SC7DNE9Z34');
+        </script>
+        <title></title>
+    </head>
+    <body>
+        <header>
+            <h1 class="header-title">Dan's Blog</h1>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Posts</a></li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+        </header>
+        <article>
+            <h1>Raspberry Pi 4b chainloader in under 300 lines of code</h1>
+            <time datetime="2025-06-14">14.6.2025</time>
+            <article>
+                <p>A compact remix of the chainloader from <a href="https://github.com/rust-embedded/rust-raspberrypi-OS-tutorials">rust-raspberrypi-OS-tutorials</a> repository.</p>
+                <h1>Code</h1>
+                <p>Link the program to start at <code>0x2000000</code> but set the physical start address to <code>0x200000</code> where the Raspberry Pi boot firmware loads the given kernel image. In <code>linker.ld</code>:</p>
+                <pre><code class="language-default">_phys_binary_begin = 0x200000;
+
+ENTRY(_phys_binary_begin)
+
+SECTIONS {
+    . = 0x2000000;
+
+    _binary_start = .;
+    .text : {
+        KEEP(*(.text._start))
+        *(.text*)
+    }
+
+    .rodata : {
+        *(.rodata*)
+    }
+
+    .data : {
+        *(.data*)
+    }
+
+    . = ALIGN(8);
+    _binary_end = .;
+
+    .bss (NOLOAD) : ALIGN(16) {
+        _bss_start = .;
+        *(.bss*);
+        . = ALIGN(16);
+        _bss_end = .;
+    }
+
+    . = ALIGN(8);
+    . += 0x1000;
+    _stack_top = .;
+}
+                </code></pre>
+                <p>We use relocations in the assembly stub to move the chainloader binary to the address it was linked to (<code>0x2000000</code>), initialize the stack, and jump to <code>chainloader_main</code>. In <code>stub.s</code>:</p>
+                <pre><code class="language-default">.macro ld_abs reg, adr
+movz    \reg, #:abs_g2:\adr
+movk    \reg, #:abs_g1_nc:\adr
+movk    \reg, #:abs_g0_nc:\adr
+.endm
+
+.macro ld_rel reg, adr
+adrp    \reg, \adr
+add     \reg, \reg, #:lo12:\adr
+.endm
+
+.section .text._start
+.global _start
+
+_start:
+    mrs     x0, mpidr_el1
+    and     x0, x0, #0xff;
+    cbz     x0, 1f
+0:
+    wfe
+    b       0b
+1:
+    ld_abs  x0, _bss_start
+    ld_abs  x1, _bss_end
+clear_bss:
+    cmp     x0, x1
+    b.eq    copy_binary
+    stp     xzr, xzr, [x0], #16
+    b       clear_bss
+copy_binary:
+    ld_rel  x0, _binary_start
+    ld_abs  x1, _binary_start
+    ld_abs  x2, _binary_end
+copy_loop:
+    ldr     x3, [x0], #8
+    str     x3, [x1], #8
+    cmp     x1, x2
+    b.lo    copy_loop
+    ld_abs  x0, _stack_top
+    mov     sp, x0
+    ld_abs  x1, chainloader_main
+    br      x1
+2:
+    b 2b
+                </code></pre>
+                <p>Minimal <a href="https://developer.arm.com/documentation/ddi0183/g/programmers-model/summary-of-registers">UART (PL011)</a> setup is needed in order for the chainloader to obtain the payload kernel. The code assumes that the UART clock rate is configured to $48~\mathrm{MHz}$ and sets the $\mathrm{baud}$ rate to $115200~\mathrm{baud}$. In <code>main.rs</code>:</p>
+                <pre><code class="language-rust">
+#![no_std]
+#![no_main]
+#![feature(const_mut_refs)]
+
+use core::arch::global_asm;
+use core::panic::PanicInfo;
+
+global_asm!(include_str!("stub.s"));
+
+const MMIO_BASE: usize = 0xFE00_0000;
+const LOAD_ADDR: usize = 0x0020_0000;
+
+const FR_BUSY: u8 = 1 &lt;&lt; 3;
+const FR_RXFE: u8 = 1 &lt;&lt; 4;
+const FR_TXFF: u8 = 1 &lt;&lt; 5;
+
+#[allow(dead_code)]
+#[allow(non_camel_case_types)]
+enum Offset {
+    GPIO_BASE = 0x200000,
+    GPFSEL1 = 0x200000 + 0x04,
+    GPIO_PUP_PDN_CNTRL_REG0 = 0x200000 + 0xE4,
+    GPPUD = 0x200000 + 0x94,
+    GPPUDCLK0 = 0x200000 + 0x98,
+
+    UART0_BASE = 0x201000,
+    UART0_RSRECR = 0x201000 + 0x04,
+    UART0_FR = 0x201000 + 0x18,
+    UART0_ILPR = 0x201000 + 0x20,
+    UART0_IBRD = 0x201000 + 0x24,
+    UART0_FBRD = 0x201000 + 0x28,
+    UART0_LCRH = 0x201000 + 0x2c,
+    UART0_CR = 0x201000 + 0x30,
+    UART0_IFLS = 0x201000 + 0x34,
+    UART0_IMSC = 0x201000 + 0x38,
+    UART0_RIS = 0x201000 + 0x3c,
+    UART0_MIS = 0x201000 + 0x40,
+    UART0_ICR = 0x201000 + 0x44,
+    UART0_DMACR = 0x201000 + 0x48,
+    UART0_ITCR = 0x201000 + 0x80,
+    UART0_ITIP = 0x201000 + 0x84,
+    UART0_ITOP = 0x201000 + 0x88,
+    UART0_TDR = 0x201000 + 0x8C,
+
+    MBOX_BASE = 0xB880, // MBOX_READ
+    MBOX_STATUS = 0xB880 + 0x18,
+    MBOX_WRITE = 0xB880 + 0x20,
+}
+
+#[inline(always)]
+fn mmio_write<T>(offset: usize, data: T) {
+    unsafe {
+        let base = MMIO_BASE as *mut u8;
+        let adr = base.add(offset) as *mut T;
+        adr.write_volatile(data)
+    }
+}
+
+#[inline(always)]
+fn mmio_read<T>(offset: usize) -&gt; T {
+    unsafe {
+        let base = MMIO_BASE as *mut u8;
+        let adr = base.add(offset) as *mut T;
+        adr.read_volatile()
+    }
+}
+
+#[inline(always)]
+fn flush() {
+    while mmio_read::<u8>(Offset::UART0_FR as usize) &amp; FR_BUSY != 0 {}
+}
+
+#[inline(always)]
+fn write_byte(byte: u8) {
+    while read_flag_register() &amp; FR_TXFF != 0 {}
+
+    mmio_write(Offset::UART0_BASE as usize, byte);
+
+    while read_flag_register() &amp; FR_BUSY != 0 {}
+}
+
+#[inline(always)]
+fn read_byte() -&gt; u8 {
+    while read_flag_register() &amp; FR_RXFE != 0 {}
+    mmio_read(Offset::UART0_BASE as usize)
+}
+
+#[inline(always)]
+fn read_flag_register() -&gt; u8 {
+    mmio_read(Offset::UART0_FR as usize)
+}
+
+// We require 115_200 baud rate and UARTCLK is set to 48 MHz in config.txt
+// Baud Rate divisor: 48_000_000/(16*115_200)=26.041667.
+// Integer part: 26
+// Fractional part: 0.041667
+// Fractional part m: int((0.041667*64)+0.5)=3
+// Generated baud rate divider: 3+16/64=26.046875
+// Generated baud rate: 48_000_000/(16*26.046875)=115_176
+fn uart_init() {
+    let mut r: u32 = mmio_read::<u32>(Offset::GPFSEL1 as usize);
+    r = (r | (1 &lt;&lt; 17) | (1 &lt;&lt; 14)) &amp; !(0b11 &lt;&lt; 15) &amp; !(0b11 &lt;&lt; 12);
+
+    mmio_write(Offset::GPFSEL1 as usize, r);
+
+    mmio_write(
+        Offset::GPIO_PUP_PDN_CNTRL_REG0 as usize,
+        ((0b01 &lt;&lt; 30) | (0b01 &lt;&lt; 28)) as u32,
+    );
+
+    flush();
+
+    mmio_write(Offset::UART0_CR as usize, 0 as u16);
+
+    let icr_val: u16 = mmio_read::<u16>(Offset::UART0_ICR as usize);
+    mmio_write(Offset::UART0_ICR as usize, icr_val &amp; 0xf800u16);
+
+    mmio_write(Offset::UART0_IBRD as usize, 26u16);
+
+    mmio_write(Offset::UART0_FBRD as usize, 3u8);
+
+    mmio_write(
+        Offset::UART0_LCRH as usize,
+        ((1 &lt;&lt; 4) | (1 &lt;&lt; 5) | (1 &lt;&lt; 6)) as u8,
+    );
+
+    mmio_write(
+        Offset::UART0_CR as usize,
+        ((1 &lt;&lt; 0) | (1 &lt;&lt; 8) | (1 &lt;&lt; 9)) as u32,
+    );
+}
+
+fn uart_reset() {
+    mmio_write::<u32>(Offset::UART0_CR as usize, 0);
+
+    mmio_write::<u32>(Offset::UART0_ICR as usize, 0x7FF);
+
+    mmio_write::<u32>(Offset::UART0_IBRD as usize, 0);
+    mmio_write::<u32>(Offset::UART0_FBRD as usize, 0);
+
+    mmio_write::<u32>(Offset::UART0_LCRH as usize, 0);
+
+    mmio_write::<u32>(Offset::UART0_IFLS as usize, 0);
+    mmio_write::<u32>(Offset::UART0_DMACR as usize, 0);
+    mmio_write::<u32>(Offset::UART0_CR as usize, 0);
+
+    flush()
+}
+
+#[no_mangle]
+pub extern "C" fn chainloader_main() -&gt; ! {
+    uart_init();
+
+    for _ in 0..3 {
+        write_byte(3);
+    }
+
+    let mut size: u32 = u32::from(read_byte());
+    size |= u32::from(read_byte()) &lt;&lt; 8;
+    size |= u32::from(read_byte()) &lt;&lt; 16;
+    size |= u32::from(read_byte()) &lt;&lt; 24;
+
+    write_byte('O' as u8);
+    write_byte('K' as u8);
+
+    let kernel_addr: *mut u8 = LOAD_ADDR as *mut u8;
+    unsafe {
+        for i in 0..size {
+            kernel_addr.offset(i as isize).write_volatile(read_byte());
+        }
+    }
+
+    flush();
+
+    uart_reset();
+
+    let kernel: fn() -&gt; ! = unsafe { core::mem::transmute(kernel_addr) };
+
+    kernel();
+}
+
+#[panic_handler]
+fn panic(_info: &amp;PanicInfo) -&gt; ! {
+    loop {}
+}
+                </code></pre>
+                <p>And finally, a Python script I use to push the payload image:</p>
+                <pre><code class="language-python">
+import argparse
+import math
+import serial
+import struct
+import time
+
+ser = serial.Serial("/dev/ttyUSB0",
+    baudrate=115200,
+    bytesize=8,
+    stopbits=1,
+    write_timeout=0.1)
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(prog='push_image', 
+        description="push kernel image to Raspberry Pi 4 B")
+    parser.add_argument("--image", type=str, help="path to  kernel image")
+
+    args = parser.parse_args()
+    return args
+
+def wait_for_payload_signal():
+    start_time = time.time()
+    duration = 20
+    count = 0 
+    while time.time() - start_time &lt; duration:
+        byte = ser.read(1)
+        if byte == b'\x03':
+            count += 1
+        if count == 3:
+            return True
+
+    print("Did not receive payload signal in 20 seconds.")
+    return False
+
+
+def push_image():
+    args = parse_arguments()
+    image = args.image
+
+    received = wait_for_payload_signal()
+    if not received:
+        ser.close()
+        return
+
+    f = open(image, 'rb')
+
+    buf = bytearray(f.read())
+
+    f.close()
+    
+    size = len(buf)
+    ser.write(struct.pack("&lt;i", size))
+    print(size)
+
+    if ser.read() != b'O':
+        print("Chainloader failed to read size")
+        return
+
+    if ser.read() != b'K':
+        print("Chainloader failed to read size")
+        return
+
+    print("size written.")
+
+    chunk_size = 512
+    c = 0
+    for i in range(0, size, chunk_size):
+        chunk = buf[i:i+chunk_size]
+        written = ser.write(chunk)
+        c += 1
+        print(f"{c}/{math.ceil(size/chunk_size)} chunks written")
+    
+    print("image written.")
+
+    while True:
+        line = ser.readline()
+        if line:
+            try:
+                print(line.decode('utf-8').strip())
+            except UnicodeDecodeError:
+                pass
+
+
+push_image()
+                </code></pre>
+            </article>
+        <footer>
+            <p>In this blog you can find posts about projects I have been working on.</p>
+            <ul>
+                <li><a href="https://github.com/dannasman">GitHub</a></li>
+                <li>dan.nasman@gmail.com</li>
+            </ul>
+        </footer>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-rust.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-python.min.js"></script>
+    </body>
+</html>
