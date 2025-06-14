@@ -1,132 +1,84 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset
-      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-<!-- created with Free Online Sitemap Generator www.xml-sitemaps.com -->
-
-
+<?xml version="1.0" encoding="UTF-8"?> 
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"> 
 <url>
-  <loc>https://dannasman.github.io/</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>1.00</priority>
+  <loc>http://dannasman.github.io/index.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/index.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/about.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/about.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/exp-function.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/exp-function.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/blog-update.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/blog-update.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/compiler-1.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/compiler-1.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/aarch64-mmu.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/aarch64-mmu.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/qft-adder.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/qft-adder.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/dirac.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/dirac.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/qelvin.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/qelvin.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/schrodinger.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/schrodinger.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/usb-driver.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/usb-driver.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/complex-numbers.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/complex-numbers.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/hacktoberfest-23.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/hacktoberfest-23.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/digit-dp.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/digit-dp.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/four-vector-simd.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/four-vector-simd.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/potential-gradient.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/potential-gradient.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/hilbert-curve-ising-model.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/hilbert-curve-ising-model.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/point-and-figure.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/point-and-figure.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/metropolis-hastings.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/metropolis-hastings.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/intermediate-expr.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/intermediate-expr.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/hacktoberfest-22.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/hacktoberfest-22.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/barnes-hut.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/barnes-hut.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/lexer-written-in-rust.html</loc>
 </url>
 <url>
-  <loc>https://dannasman.github.io/lexer-written-in-rust.html</loc>
-  <lastmod>2025-04-08T00:26:05+00:00</lastmod>
-  <priority>0.80</priority>
+  <loc>http://dannasman.github.io/./hacktoberfest-22.html</loc>
 </url>
-
-
+<url>
+  <loc>http://dannasman.github.io/{% post_url 2023-02-04-metropolis-hastings-algorithm %}</loc>
+</url>
+<url>
+  <loc>http://dannasman.github.io/{% post_url 2022-08-26-lexer-written-in-rust %}</loc>
+</url>
+<url>
+  <loc></loc>
+</url>
 </urlset>
