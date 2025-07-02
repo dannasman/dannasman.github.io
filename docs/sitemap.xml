@@ -70,15 +70,6 @@
   <loc>http://dannasman.github.io/lexer-written-in-rust.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/./hacktoberfest-22.html</loc>
-</url>
-<url>
-  <loc>http://dannasman.github.io/{% post_url 2023-02-04-metropolis-hastings-algorithm %}</loc>
-</url>
-<url>
-  <loc>http://dannasman.github.io/{% post_url 2022-08-26-lexer-written-in-rust %}</loc>
-</url>
-<url>
-  <loc></loc>
+  <loc>http://dannasman.github.io/hacktoberfest-22.html</loc>
 </url>
 </urlset>
