@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+        <link href="assets/css/styles.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+        <script type="text/javascript" async
+            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+        </script>
+        <title>Recipe for configuring external interrupts on Hazard3</title>
+    </head>
+    <body>
+        <header>
+            <h1 class="header-title">Dan's Blog</h1>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Posts</a></li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+        </header>
+        <article>
+            <h1>Recipe for configuring external interrupts on Hazard3</h1>
+            <time datetime="2025-12-05">5.12.2025</time>
+            <p>This post contains a quick recipe for a minimal <a href="https://github.com/Wren6991/Hazard3">Hazard3</a> external interrupt configuration on RP2350 using vectored interrupts. It is heavily based on code samples from Five EmbedDev's <a href="https://five-embeddev.com/baremetal/vectored_interrupts/">Vectored Interrupts</a> article.</p>
+            <h2>Vector table setup</h2>
+            <p>We begin by setting up our vector table and declaring our handler functions. On RP2350, we have three types of interrupts: external interrupt, timer interrupt, and soft interrupt. When vectoring is enabled, interrupts trigger a jump to address <code>base + 4 * cause</code> where <code>base</code> is the base address of the vector table and <code>cause</code> is either <code>3</code> for soft interrupts, <code>7</code> for timer interrupt, or <code>11</code> for external interrupt. In addition to said entries, we will have a exception handler at <code>base</code>. Note that on RP2350, the base address of the vector table must be aligned to 64 bytes when vectoring is enabled.</p>
+<pre><code class="language-c">
+__attribute__ ((interrupt("machine"), aligned(4)))
+void default_handler(void);
+__attribute__ ((interrupt("machine"), weak, alias("default_handler")))
+void MTVEC_EXCEPTION_Handler(void);
+__attribute__ ((interrupt("machine"), weak, alias("default_handler")))
+void MTVEC_MSI_Handler(void);
+__attribute__ ((interrupt("machine"), weak, alias("default_handler")))
+void MTVEC_MTI_Handler(void);
+__attribute__ ((interrupt("machine"), weak, alias("default_handler")))
+void MTVEC_MEI_Handler(void);
+
+__attribute__ ((naked, aligned(64)))
+void __vector_table(void)
+{
+    __asm__ volatile (
+            ".org       __vector_table + 0*4;"
+            "jal        zero, MTVEC_EXCEPTION_Handler;"
+            ".org       __vector_table + 3*4;"
+            "jal        zero, MTVEC_MSI_Handler;"
+            ".org       __vector_table + 7*4;"
+            "jal        zero, MTVEC_MTI_Handler;"
+            ".org       __vector_table + 11*4;"
+            "jal        zero, MTVEC_MEI_Handler;"
+            : /* no output */
+            : /* no input */
+            : /* no clobbers */);
+}
+</code></pre>
+<h2>Initialization</h2>
+<p>For simple Hazard3 interrupt configuration, the initialization sequence is rather straightforward:</p>
+<ol>
+    <li>Disable interrupts by setting bit <code>3</code> of <code>mstatus</code> register.</li>
+    <li>Write <code>0</code> to <code>mie</code> register.</li>
+    <li>Write the address of <code>__vector_table</code> OR'd with <code>0x1</code> to <code>mtvec</code>. Setting the first bit of the register enables vectoring.</li>
+    <li>Enable external interrupts by setting bit <code>11</code> of <code>mie</code> register.</li>
+    <li>Enable interrupts by setting bit <code>3</code> of <code>mstatus</code> register.</li>
+</ol>
+<pre><code class="language-c">
+
+static inline void csr_set_bits_mstatus(uint32_t mask) {
+    __asm__ volatile ("csrrs    zero, mstatus, %0"
+                      : /* output: none */
+                      : "r" (mask)  /* input : register */
+                      : /* clobbers: none */);
+}
+
+static inline void csr_clr_bits_mstatus(uint32_t mask) {
+    __asm__ volatile ("csrrc    zero, mstatus, %0"
+                      : /* output: none */
+                      : "r" (mask) /* input : from register */
+                      : /* clobbers: none */);
+}
+
+static inline void csr_write_mtvec(uint32_t value) {
+    __asm__ volatile ("csrw    mtvec, %0"
+                      : /* output: none */
+                      : "r" (value) /* input : from register */
+                      : /* clobbers: none */);
+}
+
+static inline void csr_write_mie(uint32_t value) {
+    __asm__ volatile ("csrw    mie, %0"
+                      : /* output: none */
+                      : "r" (value) /* input : from register */
+                      : /* clobbers: none */);
+}
+
+static inline void csr_set_bits_mie(uint32_t mask) {
+    __asm__ volatile ("csrrs    zero, mie, %0"
+                      : /* output: none */
+                      : "r" (mask)  /* input : register */
+                      : /* clobbers: none */);
+}
+
+void irq_init(void) {
+    csr_clr_bits_mstatus(0x8U);
+    csr_write_mie(0);
+    csr_write_mtvec((uint32_t)&amp;__vector_table | 0x1U);
+    csr_set_bits_mie(0x800);
+    csr_set_bits_mstatus(0x8);
+}
+</code></pre>
+<h2>Enable IRQ</h2>
+<p>To enable a single external interrupt request (IRQ), a corresponding entry in the external interrupt enable array must be set in <code>meiea</code> (CSR offset <code>0xbe0</code>) register. Write-only and self-clearing field covering bits <code>[4:0]</code> of the register represent the array index and bits in field covering <code>[31:16]</code> represent which interrupts are disabled/enabled in the given entry. For example, the RP2350 <code>UART0_IRQ</code> interrupt source has IRQ number <code>33</code>, and thus the index is <code>33 / 16 = 2</code> and bit <code>33 % 16 = 1</code> of the disable/enable field needs to be set in order to enable the IRQ.</p>
+<pre><code class="language-c">
+static inline void csr_set_bits_meiea(uint32_t mask) {
+    __asm__ volatile ("csrrs    zero, 0xbe0, %0"
+                      : /* output: none */
+                      : "r" (mask)  /* input : register */
+                      : /* clobbers: none */);
+}
+
+void irq_enable(uint32_t irq_no)
+{
+    uint32_t index = irq_no / 16U;
+    uint32_t mask = 1U &lt;&lt; (irq_no % 16U);
+    csr_set_bits_meiea(index | (mask &lt;&lt; 16));
+}
+</code></pre>
+<h2>External interrupt handler</h2>
+<p>In all its simplicity, the external interrupt handler will:</p>
+<ul>
+    <li>Save the context of the caller.</li>
+    <li>Poll and execute the next pending interrupt until there are none.</li>
+    <li>Restore the context of the caller.</li>
+</ul>
+<p>The next pending external interrupt is obtained by checking the value in bits <code>[10:2]</code> of the register <code>meinext</code>. If bit <code>31</code> of the register is set, there are no external interrupts pending.</p>
+<pre><code class="language-c">
+void (*const irq_handlers[52])(void) = {
+    /* ... */
+    [33] = &amp;UART0_IRQ_Handler,
+    /* ... */
+};
+
+static inline void irq_save_context(void)
+{
+    __asm__ volatile (
+            "addi sp, sp, -64;"
+            "sw ra, 0(sp);"
+            "sw t0, 4(sp);"
+            "sw t1, 8(sp);"
+            "sw t2, 12(sp);"
+            "sw a0, 16(sp);"
+            "sw a1, 20(sp);"
+            "sw a2, 24(sp);"
+            "sw a3, 28(sp);"
+            "sw a4, 32(sp);"
+            "sw a5, 36(sp);"
+            "sw a6, 40(sp);"
+            "sw a7, 44(sp);"
+            "sw t3, 48(sp);"
+            "sw t4, 52(sp);"
+            "sw t5, 56(sp);"
+            "sw t6, 60(sp);");
+}
+
+static inline void irq_restore_context(void)
+{
+    __asm__ volatile (
+            "lw ra, 0(sp);"
+            "lw t0, 4(sp);"
+            "lw t1, 8(sp);"
+            "lw t2, 12(sp);"
+            "lw a0, 16(sp);"
+            "lw a1, 20(sp);"
+            "lw a2, 24(sp);"
+            "lw a3, 28(sp);"
+            "lw a4, 32(sp);"
+            "lw a5, 36(sp);"
+            "lw a6, 40(sp);"
+            "lw a7, 44(sp);"
+            "lw t3, 48(sp);"
+            "lw t4, 52(sp);"
+            "lw t5, 56(sp);"
+            "lw t6, 60(sp);"
+            "addi sp, sp, 64;");
+}
+
+__attribute__ ((interrupt ("machine"), aligned(4)))
+void MTVEC_MEI_Handler(void)
+{
+    irq_save_context();
+
+    uint32_t val = csr_read_meinext();
+    while ((val &amp; (1U &lt;&lt; 31)) == 0) {
+        uint32_t irq_no = val &gt;&gt; 2;
+        if (irq_handlers[irq_no] != 0x0)
+            (irq_handlers[irq_no])();
+        val = csr_read_meinext();
+    }
+
+    irq_restore_context();
+}
+</code></pre>
+<h2>End of the recipe</h2>
+        </article>
+        <footer>
+            <p>In this blog you can find posts about projects I have been working on.</p>
+            <ul>
+                <li><a href="https://github.com/dannasman">GitHub</a></li>
+                <li>dan.nasman@gmail.com</li>
+            </ul>
+        </footer>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-c.min.js"></script>
+    </body>
+</html>
