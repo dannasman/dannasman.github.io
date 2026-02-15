@@ -74,10 +74,10 @@
             \end{equation}\]
 			<p>where $a_1a_2...a_n=a_1\cdot2^0+a_2\cdot 2^1+...+a_n\cdot2^n$ and $b_1b_2...b_n=b_1\cdot2^0+b_2\cdot 2^1+...+b_n\cdot2^n$ are the binary representations of $a$ and $b$. Not that the register stores the integers in big-endian format.</p>
 			<p>The next part focuses on register $|a_1a_2...a_n\rangle|0\rangle$. We first apply a QFT to obtain state (no $SWAP$ gates applied)</p>
-			\[\begin{equation}
+            \[\begin{equation}
 			\begin{split}
-			a_1a_2...a_n\rangle|0\rangle\mapsto^{QFT} &amp; \frac{1}{\sqrt{2^{n+1}}}\sum_{k=0}^{2^n}e^{i\frac{2\pi ka}{2^{n+1}}}|k\rangle \newline
-			&amp; = \left(|0\rangle+e^{-i\frac{2\pi a}{2^{n+1}}}|1\rangle\right)\otimes\left(|0\rangle+e^{-i\frac{2\pi a}{2^{n}}}|1\rangle\right)\otimes...\otimes\left(|0\rangle+e^{-i\frac{2\pi a}{2^1}}|1\rangle\right) \newline
+			a_1a_2...a_n\rangle|0\rangle &amp;\mapsto^{QFT} \frac{1}{\sqrt{2^{n+1}}}\sum_{k=0}^{2^n}e^{i\frac{2\pi ka}{2^{n+1}}}|k\rangle \newline
+            &amp; = {\scriptsize\left(|0\rangle+e^{-i\frac{2\pi a}{2^{n+1}}}|1\rangle\right)\otimes\left(|0\rangle+e^{-i\frac{2\pi a}{2^{n}}}|1\rangle\right)\otimes...\otimes\left(|0\rangle+e^{-i\frac{2\pi a}{2^1}}|1\rangle\right)} \newline
 			&amp; = |\phi_{n+1}(a)|\phi_n(a)\rangle...|\phi_1(a)\rangle,
 			\end{split}
             \end{equation}\]
@@ -96,17 +96,17 @@
 			\end{equation}\]
 			<p>For each $|\phi_k(a)\rangle,~0\lt k\lt n$ we apply $k$ controlled rotation gates where $R_1$ is controlled by $|b_k\rangle$, $R_2$ by $|b_{k-1}\rangle$ and so on. To state $\phi_{n+1}(a)$ we apply $n$ controlled rotation gates such that $R_2$ controlled by $|b_n\rangle$, $R_3$ controlled by $|b_{n-1}\rangle$ and so on.</p>
 			<p>Let us examine how applying these gates affects $|\phi_k(a)\rangle$. Let $R_j^{b_i}$ be a rotation gate controlled by $b_i$. We get</p>
-			\[\begin{equation}
+            \[\begin{equation}
 			\begin{split}
-			R_k^{b_1}...R_2^{b_{k-1}}R_1^{b_k}|\phi_k(a)\rangle &amp; = R_k^{b_1}...R_2^{b_{k-1}}\frac{1}{\sqrt{2}}\left(|0\rangle+e^{i2\pi\left(0.a_ka_{k-1}...a_1+b_k\cdot2^{-1}\right)}|1\rangle\right)\newline
+            R_k^{b_1}...R_2^{b_{k-1}}R_1^{b_k}|\phi_k(a)\rangle &amp; = R_k^{b_1}...R_2^{b_{k-1}}\frac{1}{\sqrt{2}}\left({\scriptsize|0\rangle+e^{i2\pi\left(0.a_ka_{k-1}...a_1+b_k\cdot2^{-1}\right)}|1\rangle}\right)\newline
 		    &amp; . \newline
 			&amp; . \newline
 			&amp; . \newline
-			&amp; = \frac{1}{\sqrt{2}}\left(|0\rangle+e^{i2\pi\left(0.a_ka_{k-1}...a_1+b_k\cdot2^{-1}+b_{k-1}\cdot2^{-2}+...+b_1\cdot2^{-k}\right)}|1\rangle\right)\newline
+            &amp; = {\scriptsize\frac{1}{\sqrt{2}}\left(|0\rangle+e^{i2\pi\left(0.a_ka_{k-1}...a_1+b_k\cdot2^{-1}+b_{k-1}\cdot2^{-2}+...+b_1\cdot2^{-k}\right)}|1\rangle\right)}\newline
 			&amp; = \frac{1}{\sqrt{2}}\left(|0\rangle+e^{i2\pi\left(0.a_ka_{k-1}...a_1+0.b_kb_{k-1}...b_1\right)}|1\rangle\right)\newline
 			&amp; = \phi_k(a+b).
 			\end{split}
-			\end{equation}\]
+            \end{equation}\]
 			<p>Now by applying the described procedure to every state in the QFT register we end up with state</p>
 			\[\begin{equation}
 			\phi_{n+1}(a+b)\rangle|\phi_n(a+b)\rangle...\phi_1(a+b)\rangle,
