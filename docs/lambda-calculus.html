@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+        <link href="assets/css/styles.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+        <script type="text/javascript" async
+            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+        </script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-SC7DNE9Z34"></script>
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+		<script type="text/javascript" async
+			src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+		</script>
+        <title>Untyped lambda calculus interpreter in OCaml</title>
+    </head>
+    <body>
+        <header>
+            <h1 class="header-title">Dan's Blog</h1>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Posts</a></li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+        </header>
+        <article>
+            <h1>Untyped lambda calculus interpreter in OCaml</h1>
+            <time datetime="2026-04-24">24.4.2026</time>
+            <p>A while back during the Christmas holidays I got interested in type theory and picked up <a href="https://www.cambridge.org/core/books/type-theory-and-formal-proof/0472640AAD34E045C7F140B46A57A67C">Type Theory and Formal Proof: An Introduction </a> by Rob Nederpelt and Herman Geuvers. Different kinds of lambda calculi play a big role in the book and to understand them better I decided to begin incrementally writing a lambda calculus interpreter as I progressed through the chapters describing the the topic. This post introduces the first version of the interpreter written based on the book's first chapter <i>Untyped lambda calculus</i>. This was also a great opportunity for me to learn a new language, OCaml, which is popular in the fields of computer science related to type theory and formal proof. Lexical analyzer was generated using  <a href="https://ocaml.org/manual/5.4/lexyacc.html#s:ocamllex-overview">ocamllex</a> and <a href="https://cambium.inria.fr/~fpottier/menhir/">Menhir</a> was the parser generator of choice. This post does not go into details on using them, so feel free to check out the links provided for further reading. The implementation is quite straight forward, and it was easy to write while reading through the chapter. I also used it to do some of the exercises, which further helped the learning process. The mathematical theory presented in the following chapters is taken directly from the book.</p>
+            <h2>Grammar</h2>
+            <p>The grammar of the untyped lambda calculus can easily be derived from the following definition of the set $\Lambda$ of all of its expressions, also known as <i>$\lambda$-terms</i>. A $\lambda$-term is one of three types:</p>
+            <ol>
+                <li><i>Variable</i> – Let $V$ be an infinite set of variables. If $u\in V$, then $u\in\Lambda$.</li>
+                <li><i>Abstraction</i> – If $M,N\in\Lambda$, then $(M N)\in\Lambda$.</li>
+                <li><i>Application</i> – If $u\in V$ and $M\in\Lambda$, then $(\lambda u.M)\in\Lambda$.</li>
+            </ol>
+            <p>From this definition we can form grammar</p>
+            \[\begin{equation}
+            \Lambda=V|(\Lambda\Lambda)|(\lambda V.\Lambda),
+            \end{equation}\]
+            <p>which looks a lot more like something we can implement for our interpreter. We begin the implementation by defining the grammar in <code>ast.ml</code>:</p>
+            <pre><code class="language-ocaml">
+type term = Var of string | App of term * term | Abs of string * term
+            </code></pre>
+            <p>Notice that a <code>term</code> instance is essentially a node in an <a href="https://en.wikipedia.org/wiki/Abstract_syntax_tree">abstract syntac tree (AST)</a> (thus the <code>ast.ml</code>). In order for the program to construct $\lambda$-terms from the user input we will need to add grammar definitions in <code>parser.mly</code> and lexer definitions in <code>lexer.mll</code>.</p>
+            <p>In <code>parser.mly</code>:<p>
+            <pre><code class="language-ocaml">
+%{
+    open Ast
+%}
+
+%token &lt;string&gt; VAR
+%token DOT
+%token LAMBDA
+%token LPAREN
+%token RPAREN
+%token EOF
+
+%start &lt;Ast.term&gt; prog
+
+%%
+
+prog:
+    | t = term; EOF { t }
+    ;
+
+term:
+    | x = VAR { Var (x) }
+    | LPAREN; t1 = term; t2 = term; RPAREN { App (t1, t2) }
+    | LPAREN; LAMBDA; x = VAR; DOT; t = term; RPAREN { Abs (x, t) }
+    ;
+            </code></pre>
+            <p>In <code>lexer.mll</code>:</p>
+            <pre><code class="language-ocaml">
+{
+    open Parser
+}
+
+let white = [' ' '\t' '\n' ]+
+let lod = ['a'-'z' 'A'-'Z' '0'-'9']
+let var = lod+
+
+rule read =
+    parse
+    | white     { read lexbuf }
+    | "."       { DOT }
+    | "lambda"  { LAMBDA }
+    | "("       { LPAREN }
+    | ")"       { RPAREN }
+    | var       { VAR (Lexing.lexeme lexbuf) }
+    | eof       { EOF }
+            </code></pre>
+            <p>Note that intead of <code>&lambda;</code> we use <code>lambda</code> to make writing $\lambda$-terms easier on a computer. Finally, we add the following in out <code>main.ml</code>:</p>
+            <pre><code class="language-ocaml">
+let parse (s : string) : term =
+    let lexbuf = Lexing.from_string s in
+    let ast = Parser.prog Lexer.read lexbuf in
+    ast
+            </code></pre>
+            <h2>Operations on $\lambda$-terms</h2>
+            <p>Next we need to implement some useful operations to be performed on a $lambda$-term. One of them is $FV$, which determines the set of <i>free variables</i> of a $\lambda$-term. It has the following definition:<p>
+            <ol>
+                <li>$FV(x)=\left\{x\right\}$, for each $x\in V$,</li>
+                <li>$FV((MN))=FV(M)\cup FV(N)$, for $N,M\in\Lambda$,</li>
+                <li>$FV((\lambda x.M))=FV(M)\setminus\left\{x\right\}$, for $x\in V, M\in\Lambda$.</li>
+            </ol>
+            <p>Based on the definition we implement:<p>
+            <pre><code class="language-ocaml">
+(* Free variables *)
+let rec fv (ast : Ast.term) : string list =
+    match ast with
+    | Var v -&gt;
+        [v]
+    | App (t1, t2) -&gt;
+        fv t1 @ fv t2
+    | Abs (v, t) -&gt;
+        List.filter (fun e -&gt; e &lt;&gt; v) (fv t)
+            </code></pre>
+            <p>Another operation that is $BV$, which determines the set of <i>binding variables</i> of a $\lambda$-term:
+            <ol>
+                <li>$BV(x)=\emptyset$, for each $x\in V$,</li>
+                <li>$BV((MN))=BV(M)\cup BV(N)$, for $N,M\in\Lambda$,</li>
+                <li>$BV((\lambda x.M))=\left\{x\right\}\cup BV(M)$, for $x\in V, M\in\Lambda$.</li>
+            </ol>
+            <p>The implementation is straightforward:<p>
+            <pre><code class="language-ocaml">
+(* Binding variables *)
+let rec bv (ast : Ast.term) : string list =
+    match ast with
+    | Var _ -&gt;
+        []
+    | App (t1, t2) -&gt;
+        bv t1 @ bv t2
+    | Abs (v, t) -&gt;
+        let bvt = bv t in
+        if not (List.mem v bvt) then [v] @ bvt else bvt
+        </code></pre>
+        <p>Now that we have $\mathrm{FV}$ and $\mathrm{BV}$ implemented, we can move on to $\alpha$-conversion which provides a set of rules for renaming <i>bound variables</i> (e.g. $x$ in $(\lambda x.M)$. It has the following definition</p>
+        <ol>
+            <li>Let $M^{x\rightarrow y}$ represent the result of renaming every $x$ in $M$ to $y$. $\lambda x.M=_\alpha\lambda y.M^{x\rightarrow y}$, if $y\notin FV(M)$ and $y\notin BV(M)$,</li>
+            <li>If $M=_\alpha N$, then $ML=_\alpha NL$, $LM=_\alpha LN$, and $\lambda z.M=_\alpha\lambda z.N$ for arbitrary $z$,</li>
+            <li>$M=_\alpha M$,</li>
+            <li>If $M=_\alpha N$ then $N=_\alpha M$,</li>
+            <li>IF $L=_\alpha M$ and $L=_\alpha N$, then $L=_\alpha N$.
+        </ol>
+        <p>The implementation takes form</p>
+        <pre><code class="language-ocaml">
+(* Alpha conversion *)
+let alpha_conv (ast : Ast.term) (x : string) (y : string) : Ast.term =
+    let rec conv (t : Ast.term) (x : string) (y : string) : Ast.term =
+        match t with
+        | Var v as term -&gt;
+            if v = x then Var y else term
+        | App (t1, t2) -&gt;
+            App (conv t1 x y, conv t2 x y)
+        | Abs (v, t) -&gt;
+            if v = x then Abs (y, conv t x y) else Abs (v, conv t x y)
+    in
+    match ast with
+    | Var _ as term -&gt;
+        term
+    | App _ as term -&gt;
+        term
+    | Abs (v, t) as term -&gt;
+        let bvt = bv t in
+        let fvt = fv t in
+        if (not (List.mem y bvt)) &amp;&amp; (not (List.mem y fvt)) &amp;&amp; v = x then
+          Abs (y, conv t x y)
+        else term
+        </code></pre>
+        <p>The $\alpha$-conversion implementation allows us to introduce <i>substitution</i>, which is defined as:</p>
+        <ol>
+            <li>$x\left[x:=N\right]=N$,</li>
+            <li>$y\left[x:=N\right]=y$ if $x\not\equiv y$,</li>
+            <li>$(PQ)\left[x:=N\right]\equiv(P\left[x:=N\right])(Q\left[x:=N\right]))$,</li>
+            <li>$(\lambda y.P)\left[x:=N\right]\equiv\lambda z.(P^{y\rightarrow z}\left[x:=N\right])$, if $\lambda z.P^{y\rightarrow z}$ is a $\alpha$-variant of $\lambda y.P$ such that $z\notin FV(N)$.</li>
+        </ol>
+        <p>We end up with implementation</p>
+        <pre><code class="language-ocaml">
+(* Substitution *)
+let rec sub (ast : Ast.term) (x : string) (st : Ast.term) : Ast.term =
+    match ast with
+    | Var v as term -&gt;
+        if v = x then st else term
+    | App (t1, t2) -&gt;
+        App (sub t1 x st, sub t2 x st)
+    | Abs (v, t) as term -&gt;
+        if v = x then term
+        else if List.mem v (fv st) then
+          let av = "_" ^ v in
+          let at = alpha_conv term v av in
+          sub at x st
+        else Abs (v, sub t x st)
+        </code></pre>
+        <p>Last operation to be implemented is the $\beta$-reduction, which is at the core of our interpreter. The main function of the interpreter is to evaluate the $\lambda$-term given by the user and reduce it to its <i>normal form</i>, which in simple terms is form that can not be further reduced. A single $\beta$-reduction step is defined as:
+        <ol>
+            <li>$(\lambda x.M)N\rightarrow_\beta M\left[x:=N\right]$,</li>
+            <li>If $M\rightarrow_\beta N$, then $ML\rightarrow_\beta NL$, $LM\rightarrow_\beta LN$, and $\lambda x.M\rightarrow_\beta\lambda x.N$.</li>
+        </ol>
+        From the definition we derive implementation
+        <pre><code class="language-ocaml">
+(* One-step Beta reduction *)
+let rec reduce (ast : Ast.term) : Ast.term =
+    match ast with
+    | Var _ as term -&gt;
+        term
+    | App (t1, t2) as term -&gt;
+        let t =
+            match t1 with
+            | Abs (v, t) -&gt;
+                sub t v t2
+            | _ -&gt;
+                let r = App (reduce t1, t2) in
+                if r = term then App (t1, reduce t2) else r
+        in
+        t
+    | Abs (v, t) -&gt;
+        Abs (v, reduce t)
+        </code></pre>
+        <p>For an application that is not equal to the $\lambda$-term in part 1. of the single $\beta$-reduction step definition, the implementation first tries to reduce the left $\lambda$-term. If it did not reduce, the implementation then reduces the right $\lambda$-term. We can now perform $\beta$-reduction by calling <code>reduce</code> until the $\lambda$-term returned by it is equivalent to the one we passed as parameter. In <code>main.ml</code>:</p>
+        <pre><code class="language-ocaml">
+let print (ast : Ast.term) =
+    let rec print_term t =
+        match t with
+        | Var v -&gt;
+            print_string v
+        | App (t1, t2) -&gt;
+            print_string "(" ;
+            print_term t1 ;
+            print_string " " ;
+            print_term t2 ;
+            print_string ")"
+        | Abs (v, t) -&gt;
+            print_string ("λ " ^ v ^ ".") ;
+            print_term t
+    in
+    print_term ast ; print_string "\n"
+
+let () =
+    let rec beta t =
+        let r = reduce t in
+        if r = t then r else beta r
+    in
+    let filename = Sys.argv.(1) in
+    let ic = open_in filename in
+    let s = In_channel.input_all ic in
+    let ast = parse s in
+    let reduced = beta ast in
+    print_string "Original expression:\n" ;
+    print ast ;
+    print_string "Beta reduced expression:\n" ;
+    print reduced
+        </code></pre>
+        <p>We now have a untyped lambda calculus interpreter capable of $\beta$-reducing $\lambda$-terms to their normal form.</p>
+        <h2>Example: Church numerals</h2>
+        <p>Let us define the first three Church numerals as well as addition and multiplication of Church numerals</p>
+        \[\begin{equation*}
+        \begin{split}
+        zero&amp;:=\lambda f.(\lambda x.x),\\
+        one&amp;:=\lambda f.(\lambda x.(fx)),\\
+        two&amp;:=\lambda f.(\lambda x. (f(fx))),\\
+        add&amp;:=\lambda m.(\lambda n.(\lambda f.(\lambda x.((mf)((nf)x))))),\\
+        mul&amp;:=\lambda m.(\lambda n.(\lambda f.(\lambda x.((m(nf))x)))).
+        \end{split}
+        \end{equation*}\]
+        <p>Passing $\lambda$-term $((add~one) one)$</p>
+        <pre><code class="language-default">
+(((lambda m . (lambda n . (lambda f . (lambda x . ((m f) ((n f) x))))))
+  (lambda f . (lambda x . (f x))))
+ (lambda f . (lambda x . (f x))))
+        </code></pre>
+        to the interpreter yields
+        <pre><code class="language-default">
+Original expression:
+((λ m.λ n.λ f.λ x.((m f) ((n f) x)) λ f.λ x.(f x)) λ f.λ x.(f x))
+Beta reduced expression:
+λ f.λ x.(f (f x))
+        </code></pre>
+        <p>which equals to $two$. Another $\lambda$-term $((mul~one) zero)$</p>
+        <pre><code class="language-default">
+(((lambda m . (lambda n . (lambda f . (lambda x . ((m (n f)) x)))))
+ (lambda f . (lambda x . (f x)))) (lambda f . (lambda x . x)))
+        </code></pre>
+        <p>reduces to</p>
+        <pre><code class="language-default">
+Original expression:
+((λ m.λ n.λ f.λ x.((m (n f)) x) λ f.λ x.(f x)) λ f.λ x.x)
+Beta reduced expression:
+λ f.λ x.x
+        </code></pre>
+        <p>which corresponds to $zero$.<p>
+        </article>
+        <footer>
+            <p>In this blog you can find posts about projects I have been working on.</p>
+            <ul>
+                <li><a href="https://github.com/dannasman">GitHub</a></li>
+                <li>dan.nasman@gmail.com</li>
+            </ul>
+        </footer>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-ocaml.min.js"></script>
+    </body>
+</html>
