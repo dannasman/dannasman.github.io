@@ -123,7 +123,7 @@ in_el1:
 +--------------+--------------+--------------+--------------+-------------+
             </code></pre>
             <p>The bits [11:0] describe the offset within the 4 KB page (<code>pa</code> refers to physical address). The bits [20:12] act as an index for a table (Level 3 table) of 4 KB pages with 512 entries (indexes range from <code>0b000000000</code> to <code>0b111111111</code>). The bits [29:30] in turn act as indexes for Level 2 table containing entries each pointing to a Level 3 table. A Level 2 table entry can also point to a <code>512 * 4 KB = 2 MB</code> block of memory. Similary, bits [38:30] act as indexes of the Level 1 table with each entry pointing to either a Level 2 table or a <code>512 * 512 * 4 KB = 1 GB</code> memory block. The Level 0 (bits [47:39] serve as indexes) in turn points to a Level 1 table or a <code>512 GB</code> memory block.</p>
-			<p>For the purpose of my bare metal project I wanted the translation table to cover 2 GB of physical memory. Since the Level 0 table holds 256 GB entries there should be only one entry in the table in our case. Level 1 table holds two 1 GB memory blocks. This means that there is no need to set up tables lower than Level 1!</p>
+			<p>For the purpose of my bare metal project I wanted the translation table to cover 2 GB of physical memory. Since the Level 0 table holds 512 GB entries there should be only one entry in the table in our case. Level 1 table holds two 1 GB memory blocks. This means that there is no need to set up tables lower than Level 1!</p>
 			<p>At this point you may be wondering about the remaining bits [63:48] of the virtual address. These bits tell which translation table base register to use. If they are all set to zero <code>ttbr0_el1</code> is used, if they are all set to one <code>ttbr1_el1</code> is used. If the bits hold ones and zeros a translation fault is generated. This plays well with our kernel and user space separation. <code>ttbr0_el1</code> holds the translation table for the user space  and <code>ttbr1_el1</code> for the kernel space. In our simplified case <code>ttbr0_el1</code> and <code>ttbr1_el1</code> can be set to point to the same table.</p>
 			<p>With this information we are ready to configure the MMU.</p>
 			<h3>TCR_EL1</h2>
@@ -350,6 +350,7 @@ pagetable_level1:
 			</code></pre>
 			<p>And there we have it! The MMU should be now set up and you should be able to read/write to addresses residing in <code>0x00000000-0x3fffffff</code> and <code>0xffff000000000000-0xffff00003fffffff</code> and read/write/execute addresses located in <code>0x40000000-0x7fffffff</code>  and <code>0xffff000040000000-0xffff00007fffffff</code>.</p>
 			<p>This was my first post related to bare metal programming, so there might be some errors or poorly explained sections. If you find any mistakes or room for improvements feel free to email me! If you found this post helpful please do the same.</p>
+            <p><i>Edit: Fixed Level 0 table entry size in "Setting up the MMU" section thanks to an observation from a reader. The correct size is 512 GB instead of 256 GB.</i></p>
 		</article>
 		<footer>
 			<p>In this blog you can find posts about projects I have been working on.</p>
