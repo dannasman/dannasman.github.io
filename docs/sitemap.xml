@@ -1,78 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?> 
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"> 
+<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9"> 
 <url>
-  <loc>http://dannasman.github.io/index.html</loc>
+  <loc>https://dannasman.github.io/index.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/about.html</loc>
+  <loc>https://dannasman.github.io/about.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/exp-function.html</loc>
+  <loc>https://dannasman.github.io/exp-function.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/blog-update.html</loc>
+  <loc>https://dannasman.github.io/blog-update.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/compiler-1.html</loc>
+  <loc>https://dannasman.github.io/compiler-1.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/aarch64-mmu.html</loc>
+  <loc>https://dannasman.github.io/aarch64-mmu.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/qft-adder.html</loc>
+  <loc>https://dannasman.github.io/qft-adder.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/dirac.html</loc>
+  <loc>https://dannasman.github.io/dirac.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/qelvin.html</loc>
+  <loc>https://dannasman.github.io/qelvin.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/schrodinger.html</loc>
+  <loc>https://dannasman.github.io/schrodinger.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/usb-driver.html</loc>
+  <loc>https://dannasman.github.io/usb-driver.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/complex-numbers.html</loc>
+  <loc>https://dannasman.github.io/complex-numbers.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/hacktoberfest-23.html</loc>
+  <loc>https://dannasman.github.io/hacktoberfest-23.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/digit-dp.html</loc>
+  <loc>https://dannasman.github.io/digit-dp.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/four-vector-simd.html</loc>
+  <loc>https://dannasman.github.io/four-vector-simd.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/potential-gradient.html</loc>
+  <loc>https://dannasman.github.io/potential-gradient.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/hilbert-curve-ising-model.html</loc>
+  <loc>https://dannasman.github.io/hilbert-curve-ising-model.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/point-and-figure.html</loc>
+  <loc>https://dannasman.github.io/point-and-figure.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/metropolis-hastings.html</loc>
+  <loc>https://dannasman.github.io/metropolis-hastings.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/intermediate-expr.html</loc>
+  <loc>https://dannasman.github.io/intermediate-expr.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/hacktoberfest-22.html</loc>
+  <loc>https://dannasman.github.io/hacktoberfest-22.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/barnes-hut.html</loc>
+  <loc>https://dannasman.github.io/barnes-hut.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/lexer-written-in-rust.html</loc>
+  <loc>https://dannasman.github.io/lexer-written-in-rust.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/hazard3-interrupts.html</loc>
+  <loc>https://dannasman.github.io/hazard3-interrupts.html</loc>
 </url>
 <url>
-  <loc>http://dannasman.github.io/lambda-calculus.html</loc>
+  <loc>https://dannasman.github.io/lambda-calculus.html</loc>
 </url>
 </urlset>
