@@ -1,4 +1,7 @@
 User-agent: *
 Disallow: /assets/
 
+User-agent: Googlebot
+Allow: /assets/
+
 Sitemap: https://dannasman.github.io/sitemap.xml
