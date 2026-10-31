@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" rel="stylesheet" />
+        <link href="assets/css/styles.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-SC7DNE9Z34"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-SC7DNE9Z34');
+        </script>
+        <script type="text/javascript" async
+            src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+        </script>
+		<script type="text/x-mathjax-config">
+			MathJax.Hub.Config({
+				TeX: {
+				equationNumbers: { autoNumber: "AMS" },
+					tagSide: "right"
+				},
+				tex2jax: {
+					inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+					displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+					processEscapes: true
+				}
+			});
+			MathJax.Hub.Register.StartupHook("TeX AMSmath Ready", function () {
+				MathJax.InputJax.TeX.Stack.Item.AMSarray.Augment({
+					clearTag() {
+						if (!this.global.notags) {
+							this.super(arguments).clearTag.call(this);
+						}
+					}
+				});
+			});
+		</script>
+        <title>FM demodulation from I/Q samples</title>
+    </head>
+    <body>
+        <header>
+            <h1 class="header-title">Dan's Blog</h1>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Posts</a></li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+        </header>
+        <article>
+            <h1>FM demodulation from I/Q samples</h1>
+            <time datetime="2026-10-31">31.10.2026</time>
+            <h2>Frequency modulation</h2>
+            <h3>Instantaneous phase</h3>
+            <p>The instantaneous phase of a function $s:\mathbb{R}\mapsto\mathbb{Q}$ is defined as</p>
+                \[\begin{equation}
+                \theta(t)=\arg\left\{s(t)\right\},
+                \end{equation}\]
+            <p>where $\arg$ is the complex argument function. For a function $s:\mathbb{R}\mapsto\mathbb{R}$, the instantaneous phase is determined using the function's analytic presentation $s_a(t)$ with</p>
+                \[\begin{equation}
+                    \theta(t)=\arg\left\{s_a(t)\right\}=\arg\left\{s(t)+j\hat{s}(t)\right\},
+                \end{equation}\]
+            <p>where $\hat{s}(t)$ is the Hilbert transform of $s(t)$. The instantaneous frequency is obtained by taking the time derivative of the instantaneous phase</p>
+            \[\begin{equation}
+            \label{eq:3}
+                \omega(t)=\dfrac{d\theta(t)}{dt}.
+            \end{equation}\]
+            <h3>Modulating baseband message $m(t)$</h3>
+            <p>Given a baseband message $m(t)$ with carrier frequency $\omega_c$, the instantaneous frequency is defined as</p>
+                \[\begin{equation}
+                \omega(t)=\omega_c+k_\omega m(t),
+                \end{equation}\]
+            <p>where $k_\omega&gt;0$ is the frequency sensitivity. The instantaneous phase $\theta(t)$ can be obtained by integrating $\omega(t)$ over $\left[0, t\right]$, giving</p>
+                \[\begin{equation}
+                \begin{split}
+                \theta(t)&amp;=\int_0^t\omega(\tau)d\tau\\
+                &amp;=\omega_ct+k_\omega\int_0^tm(t)d\tau\\
+                &amp;=\omega_ct+k_\omega\theta_m(t).
+                \end{split}
+                \end{equation}\]
+            <p>Given the instantaneous phase, the FM signal for baseband message $m(t)$ is defined as</p>
+                \[\begin{equation}
+                    s(t)=A\cos{\left[\theta(t)\right]}=A\cos{\left[\omega_ct+k_\omega\theta_m(t)\right]},
+                \end{equation}\]
+            <p>where $A$ is the amplitude of the signal.</p>
+            <h2>I/Q samples</h2>
+            <p>I/Q samples refer to in-phase and quadrature representation of the signal. For FM signal, the in-phase $I(t)$ and quadrature $Q(t)$ components can be extracted from $s(t)$ using angle sum identity</p>
+            \[\begin{equation}
+            \begin{split}
+                s(t)&amp;=A\cos{\left[\omega_ct+k_\omega\theta_m(t)\right]}\\
+                &amp;=A\cos{\left(\omega_ct\right)}\cos{\left[k_\omega\theta_m(t)\right]}-A\sin{\left(\omega_ct\right)}\sin{\left[k_\omega\theta_m(t)\right]}\\
+                &amp;=A\cos{\left(\omega_ct\right)}I(t)-A\sin{\left(\omega_ct\right)}Q(t).
+            \end{split}
+            \end{equation}\]
+            <p>I/Q samples are often processed as complex numbers $I(t)+jQ(t)$.</p>
+            <h2>FM demodulation</h2>
+            <p>In order to extract $m(t)$ from the FM signal, we first need to recover $\theta_m(t)$. Given $I(t)$ and $Q(t)$, we can do this by using arctangent</p>
+            \[\begin{equation}
+            \begin{split}
+            \tan^{-1}{\left[\frac{Q(t)}{I(t)}\right]}&amp;=\tan^{-1}{\left[\frac{\cos{\left[k_\omega\theta_m(t)\right]}}{\sin{\left[k_\omega\theta_m(t)\right]}}\right]}\\
+            &amp;=\tan^{-1}{\left\{\tan\left[k_\omega\theta_m(t)\right]\right\}}\\
+            &amp;=k_\omega\theta_m(t).
+            \end{split}
+            \end{equation}\]
+            <p>Finally, using equation $\ref{eq:3}$ we obtain</p>
+            \[\begin{equation}
+            m(t)=\dfrac{d\theta_m(t)}{dt}=\frac{1}{k_\omega}\dfrac{d}{dt}\tan^{-1}{\left[\frac{Q(t)}{I(t)}\right]}.
+            \end{equation}\]
+            <p>When demodulating the FM signal in software, it is useful to treat the I/Q samples as complex values $x\left[t\right]=I\left[t\right]+jQ\left[t\right]$ and approximate the derivative using<p>
+            \[\begin{equation}
+            m\left[t\right]\approx\tan^{-1}{\left(\frac{\Im\left\{x\left[t-1\right]\cdot x\left[t\right]\right\}}{\Re\left\{x\left[t-1\right]\cdot x\left[t\right]\right\}}\right)},
+            \end{equation}\]
+            <p>where $\Im\left\{z\right\}$ and $\Re\left\{z\right\}$ are the imaginary and real part of $z$ respectively.</p>
+            <h2>Example</h2>
+            <p>Let $f_c=1~\mathrm{kHz}$, $f_c=100~\mathrm{Hz}$, $f_c=50~\mathrm{kHz}$, $k_\omega=500~\mathrm{Hz}$, and<p>
+            \[\begin{equation}
+            \begin{split}
+            &amp;m(t)=\cos{\left(\omega_mt\right)}\\
+            \Rightarrow &amp;s(t)=\cos\left(\omega_ct+\frac{k_\omega}{\omega_m}\sin\omega_mt\right).
+            \end{split}
+            \end{equation}\]
+            <figure>
+                <img src="assets/img/baseband_message.svg"></img>
+                <figcaption><b>Figure 1</b>: Baseband message $m(t)$.</figcaption>
+            </figure>
+            <figure>
+                <img src="assets/img/fm_signal.svg"></img>
+                <figcaption><b>Figure 2</b>: FM signal $s(t)$.</figcaption>
+            </figure>
+            <figure>
+                <img src="assets/img/iq_samples.svg"></img>
+                <figcaption><b>Figure 3</b>: I/Q samples scaled to range $\left[-128, 127\right]$.</figcaption>
+            </figure>
+            <figure>
+                <img src="assets/img/demod.svg"></img>
+                <figcaption><b>Figure 4</b>: $m\left[t\right]$ FM demodulated from the I/Q samples.</figcaption>
+            </figure>
+        </article>
+        <footer>
+            <p>In this blog you can find posts about projects I have been working on.</p>
+            <ul>
+                <li><a href="https://github.com/dannasman">GitHub</a></li>
+                <li>dan.nasman@gmail.com</li>
+            </ul>
+        </footer>
+    </body>
+</html>
